@@ -200,5 +200,25 @@ static string NormalizzaPostgres(string connectionString)
 
     var uri = new Uri(connectionString);
     var credenziali = uri.UserInfo.Split(':', 2);
-    return $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={credenziali[0]};Password={Uri.UnescapeDataString(credenziali.ElementAtOrDefault(1) ?? string.Empty)};Ssl Mode=Require";
+
+    var sslMode = "Prefer";
+    foreach (var coppia in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var parti = coppia.Split('=', 2);
+        if (parti.Length == 2 && parti[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase))
+        {
+            sslMode = parti[1] switch
+            {
+                "disable" => "Disable",
+                "allow" => "Allow",
+                "prefer" => "Prefer",
+                "require" => "Require",
+                "verify-ca" => "VerifyCA",
+                "verify-full" => "VerifyFull",
+                _ => "Prefer"
+            };
+        }
+    }
+
+    return $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={credenziali[0]};Password={Uri.UnescapeDataString(credenziali.ElementAtOrDefault(1) ?? string.Empty)};Ssl Mode={sslMode}";
 }

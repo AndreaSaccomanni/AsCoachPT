@@ -1,17 +1,27 @@
+databases:
+  - name: ascoachpt-db
+    databaseName: ascoachpt
+    user: ascoachpt
+    plan: free
+    region: frankfurt
+
 services:
   - type: web
-    name: alessandrosaccomannipt
+    name: ascoachpt
     runtime: docker
     rootDir: src/AsCoachPT
     dockerfilePath: ./Dockerfile
     plan: starter
+    region: frankfurt
+    healthCheckPath: /
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: ascoachpt-db
+          property: connectionString
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD
         sync: false
-    healthCheckPath: /
