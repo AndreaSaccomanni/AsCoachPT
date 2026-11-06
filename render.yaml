@@ -9,7 +9,6 @@ services:
   - type: web
     name: ascoachpt
     runtime: docker
-    rootDir: src/AsCoachPT
     dockerfilePath: ./Dockerfile
     plan: starter
     region: frankfurt

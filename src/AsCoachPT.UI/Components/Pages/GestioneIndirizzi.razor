@@ -1,0 +1,313 @@
+@page "/gestioneIndirizzi"
+@attribute [Authorize(Roles = "ADMIN,PERSONAL_TRAINER")]
+@inject IndirizzoService IndirizziSvc
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-8">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <MudText Typo="Typo.h4">Gestione Indirizzi</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLocationAlt" OnClick="ApriAggiunta">
+            Aggiungi Indirizzo
+        </MudButton>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(erroreGiorni))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@erroreGiorni</MudAlert>
+    }
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (indirizzi.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning">Nessun indirizzo trovato.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@Righe" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true" Elevation="2">
+            <HeaderContent>
+                <MudTh>#</MudTh>
+                <MudTh>Via</MudTh>
+                <MudTh>Civico</MudTh>
+                <MudTh>Città</MudTh>
+                <MudTh>Provincia</MudTh>
+                <MudTh>Nome Studio</MudTh>
+                <MudTh>Giorni</MudTh>
+                <MudTh>Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="riga">
+                <MudTd DataLabel="#">@riga.Posizione</MudTd>
+                <MudTd DataLabel="Via">@riga.Indirizzo.Via</MudTd>
+                <MudTd DataLabel="Civico">@riga.Indirizzo.NumeroCivico</MudTd>
+                <MudTd DataLabel="Città">@riga.Indirizzo.Citta</MudTd>
+                <MudTd DataLabel="Provincia">@riga.Indirizzo.Provincia</MudTd>
+                <MudTd DataLabel="Studio">@riga.Indirizzo.NomeStudio</MudTd>
+                <MudTd DataLabel="Giorni">@(riga.Indirizzo.Giorni.Count > 0 ? string.Join(" - ", riga.Indirizzo.Giorni) : "Nessun giorno assegnato")</MudTd>
+                <MudTd DataLabel="Azioni">
+                    <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => ApriModifica(riga.Indirizzo)">Modifica</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="() => ChiediEliminazioneAsync(riga.Indirizzo.Id)">Elimina</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudDialog @bind-Visible="modaleAperta">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(modale.Id is null ? "Aggiungi Indirizzo" : "Modifica Indirizzo")</MudText>
+        </TitleContent>
+        <DialogContent>
+            @if (!string.IsNullOrWhiteSpace(erroreModale))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">@erroreModale</MudAlert>
+            }
+
+            <MudTextField T="string" Label="Cerca luogo (Google)" @bind-Value="modale.Luogo" Immediate="true"
+                          Variant="Variant.Outlined" Class="mb-2" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          DebounceInterval="400" OnDebounceIntervalElapsed="CercaLuogoAsync" />
+            <MudTextField T="string" Label="Indirizzo trovato" Value="@modale.LuogoTrovato" ReadOnly="true" Variant="Variant.Outlined" Class="mb-4" />
+
+            @if (modale.Id is not null)
+            {
+                <MudTextField T="string" Label="Via" @bind-Value="modale.Via" Variant="Variant.Outlined" Class="mb-4" />
+                <MudTextField T="string" Label="Numero civico" @bind-Value="modale.NumeroCivico" Variant="Variant.Outlined" Class="mb-4" />
+                <MudTextField T="string" Label="Città" @bind-Value="modale.Citta" Variant="Variant.Outlined" Class="mb-4" />
+                <MudTextField T="string" Label="Provincia" @bind-Value="modale.Provincia" Variant="Variant.Outlined" Class="mb-4" />
+            }
+
+            <MudTextField T="string" Label="Nome Studio" @bind-Value="modale.NomeStudio" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Giorni disponibili</MudText>
+            @foreach (var giorno in GiorniSettimana)
+            {
+                var assegnatoAltrove = giorniAssegnati.Contains(giorno) && !modale.Giorni.Contains(giorno);
+                <MudCheckBox T="bool" Value="@modale.Giorni.Contains(giorno)" Label="@giorno"
+                             Disabled="@assegnatoAltrove"
+                             ValueChanged="@((bool v) => ToggleGiorno(giorno, v))" Color="Color.Primary" />
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => modaleAperta = false">Chiudi</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SalvaAsync" Disabled="salvando">
+                @(modale.Id is null ? "Aggiungi" : "Salva Modifiche")
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-Visible="confermaAperta">
+        <TitleContent><MudText Typo="Typo.h6">Elimina indirizzo</MudText></TitleContent>
+        <DialogContent>
+            <MudText>@testoConferma</MudText>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => confermaAperta = false">Annulla</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="EliminaConfermataAsync">Elimina</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudContainer>
+
+@code {
+    private record Riga(int Posizione, Indirizzo Indirizzo);
+
+    private static readonly string[] GiorniSettimana = { "LUNEDI", "MARTEDI", "MERCOLEDI", "GIOVEDI", "VENERDI", "SABATO" };
+
+    private List<Indirizzo> indirizzi = new();
+    private List<Riga> Righe = new();
+    private List<string> giorniAssegnati = new();
+    private IndirizzoModale modale = new();
+    private string? erroreModale;
+    private string? erroreGiorni;
+    private string testoConferma = string.Empty;
+    private bool loading = true;
+    private bool salvando;
+    private bool modaleAperta;
+    private bool confermaAperta;
+    private long idDaEliminare;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CaricaAsync();
+        loading = false;
+    }
+
+    private async Task CaricaAsync()
+    {
+        indirizzi = await IndirizziSvc.ElencaAsync();
+        giorniAssegnati = indirizzi.SelectMany(i => i.Giorni).ToList();
+        Righe = indirizzi.Select((i, idx) => new Riga(idx + 1, i)).ToList();
+    }
+
+    private void ApriAggiunta()
+    {
+        if (giorniAssegnati.Count == 6)
+        {
+            erroreGiorni = "Non ci sono giorni liberi. Prima di aggiungere un nuovo indirizzo, rimuovi un giorno da uno degli indirizzi esistenti.";
+            return;
+        }
+
+        erroreGiorni = null;
+        erroreModale = null;
+        modale = new IndirizzoModale();
+        modaleAperta = true;
+    }
+
+    private void ApriModifica(Indirizzo indirizzo)
+    {
+        erroreModale = null;
+        modale = new IndirizzoModale
+        {
+            Id = indirizzo.Id,
+            Via = indirizzo.Via,
+            NumeroCivico = indirizzo.NumeroCivico,
+            Citta = indirizzo.Citta,
+            Provincia = indirizzo.Provincia,
+            NomeStudio = indirizzo.NomeStudio,
+            Latitudine = indirizzo.Latitudine,
+            Longitudine = indirizzo.Longitudine,
+            Giorni = new List<string>(indirizzo.Giorni)
+        };
+        modaleAperta = true;
+    }
+
+    private void ToggleGiorno(string giorno, bool selezionato)
+    {
+        if (selezionato && !modale.Giorni.Contains(giorno))
+        {
+            modale.Giorni.Add(giorno);
+        }
+        else if (!selezionato)
+        {
+            modale.Giorni.Remove(giorno);
+        }
+    }
+
+    private async Task CercaLuogoAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return;
+        }
+
+        try
+        {
+            var risultato = await JS.InvokeAsync<PlaceResult?>("asCoachSearchPlace", query);
+            if (risultato is null)
+            {
+                return;
+            }
+
+            modale.LuogoTrovato = risultato.FormattedAddress ?? string.Empty;
+            modale.Via = risultato.Via ?? modale.Via;
+            modale.NumeroCivico = risultato.NumeroCivico ?? modale.NumeroCivico;
+            modale.Citta = risultato.Citta ?? modale.Citta;
+            modale.Provincia = risultato.Provincia ?? modale.Provincia;
+            modale.Latitudine = risultato.Lat ?? modale.Latitudine;
+            modale.Longitudine = risultato.Lng ?? modale.Longitudine;
+        }
+        catch (Exception ex)
+        {
+            erroreModale = "Ricerca luogo non disponibile: " + ex.Message;
+        }
+    }
+
+    private async Task SalvaAsync()
+    {
+        if (string.IsNullOrWhiteSpace(modale.NomeStudio))
+        {
+            erroreModale = "Il nome studio è obbligatorio";
+            return;
+        }
+
+        salvando = true;
+        erroreModale = null;
+        try
+        {
+            var indirizzo = new Indirizzo
+            {
+                Via = modale.Via,
+                NumeroCivico = modale.NumeroCivico,
+                Citta = modale.Citta,
+                Provincia = modale.Provincia,
+                NomeStudio = modale.NomeStudio,
+                Latitudine = modale.Latitudine,
+                Longitudine = modale.Longitudine,
+                GiorniDisponibili = string.Join(", ", modale.Giorni)
+            };
+
+            if (modale.Id is null)
+            {
+                await IndirizziSvc.AggiungiAsync(indirizzo);
+            }
+            else
+            {
+                await IndirizziSvc.AggiornaAsync(modale.Id.Value, indirizzo);
+            }
+
+            modaleAperta = false;
+            await CaricaAsync();
+            Snackbar.Add(modale.Id is null ? "Indirizzo aggiunto" : "Indirizzo aggiornato", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            erroreModale = ex.Message;
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private async Task ChiediEliminazioneAsync(long id)
+    {
+        idDaEliminare = id;
+        var prenotazioni = await IndirizziSvc.ElencaPrenotazioniAsync(id);
+        testoConferma = prenotazioni.Count > 0
+            ? "Ci sono prenotazioni per quell'indirizzo. Eliminare comunque? Tutte le prenotazioni andranno perse."
+            : "Sei sicuro di voler eliminare questo indirizzo?";
+        confermaAperta = true;
+    }
+
+    private async Task EliminaConfermataAsync()
+    {
+        try
+        {
+            await IndirizziSvc.EliminaAsync(idDaEliminare);
+            await CaricaAsync();
+            Snackbar.Add("Indirizzo eliminato", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private sealed class IndirizzoModale
+    {
+        public long? Id { get; set; }
+        public string Luogo { get; set; } = string.Empty;
+        public string LuogoTrovato { get; set; } = string.Empty;
+        public string Via { get; set; } = string.Empty;
+        public string NumeroCivico { get; set; } = string.Empty;
+        public string Citta { get; set; } = string.Empty;
+        public string Provincia { get; set; } = string.Empty;
+        public string NomeStudio { get; set; } = string.Empty;
+        public double? Latitudine { get; set; }
+        public double? Longitudine { get; set; }
+        public List<string> Giorni { get; set; } = new();
+    }
+
+    public sealed class PlaceResult
+    {
+        public string? FormattedAddress { get; set; }
+        public string? Via { get; set; }
+        public string? NumeroCivico { get; set; }
+        public string? Citta { get; set; }
+        public string? Provincia { get; set; }
+        public double? Lat { get; set; }
+        public double? Lng { get; set; }
+    }
+}

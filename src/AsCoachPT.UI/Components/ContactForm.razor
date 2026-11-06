@@ -1,0 +1,65 @@
+@inject ContattiService Contatti
+@inject ISnackbar Snackbar
+
+<MudPaper Elevation="4" Class="pa-6 container-form" Style="background: rgba(20,20,20,.85);">
+    <MudText Typo="Typo.h5" Class="mb-4">Contattami</MudText>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6">
+            <MudTextField T="string" Label="Nome" @bind-Value="form.Nome" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField T="string" Label="Cognome" @bind-Value="form.Cognome" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField T="string" Label="Email" @bind-Value="form.Email" InputType="InputType.Email" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField T="string" Label="Messaggio" @bind-Value="form.Messaggio" Lines="5" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+    </MudGrid>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="InviaAsync" Disabled="inviando" Class="mt-2">
+        Invia
+    </MudButton>
+
+    @if (inviato)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4">Messaggio inviato con successo!</MudAlert>
+    }
+    @if (errore)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">Errore nell'invio dell'email.</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    private readonly FormInformazioni form = new();
+    private bool inviato;
+    private bool errore;
+    private bool inviando;
+
+    private async Task InviaAsync()
+    {
+        inviando = true;
+        errore = false;
+        inviato = false;
+
+        var ok = await Contatti.InviaRichiestaAsync(form);
+        if (ok)
+        {
+            inviato = true;
+            form.Nome = string.Empty;
+            form.Cognome = string.Empty;
+            form.Email = string.Empty;
+            form.Messaggio = string.Empty;
+            Snackbar.Add("Messaggio inviato correttamente", Severity.Success);
+        }
+        else
+        {
+            errore = true;
+        }
+
+        inviando = false;
+    }
+}
