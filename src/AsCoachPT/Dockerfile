@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY AsCoachPT.csproj ./
-RUN dotnet restore AsCoachPT.csproj
-
+# Il restore deve avvenire dopo la copia completa: con il solo .csproj
+# gli static web assets di Blazor (_framework/blazor.web.js) non vengono generati.
 COPY . ./
+RUN dotnet restore AsCoachPT.csproj
 RUN dotnet publish AsCoachPT.csproj -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
