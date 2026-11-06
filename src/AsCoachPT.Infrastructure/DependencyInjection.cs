@@ -62,7 +62,28 @@ public static class DependencyInjection
         servizi.AddScoped<IPrenotazioneRepository, PrenotazioneRepository>();
         servizi.AddScoped<IUnitOfWork, UnitOfWork>();
 
-        servizi.AddScoped<IEmailSender, SmtpEmailSender>();
+        servizi.AddOptions<ResendOptions>()
+            .Configure(opzioni => configurazione.GetSection(ResendOptions.SectionName).Bind(opzioni))
+            .PostConfigure(opzioni =>
+            {
+                opzioni.ApiKey = string.IsNullOrWhiteSpace(opzioni.ApiKey)
+                    ? Environment.GetEnvironmentVariable("RESEND_API_KEY") ?? string.Empty
+                    : opzioni.ApiKey;
+                opzioni.From = string.IsNullOrWhiteSpace(opzioni.From)
+                    ? Environment.GetEnvironmentVariable("RESEND_FROM") ?? "onboarding@resend.dev"
+                    : opzioni.From;
+            });
+
+        var resendApiKey = configurazione["Resend:ApiKey"] ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
+        if (!string.IsNullOrWhiteSpace(resendApiKey))
+        {
+            servizi.AddHttpClient<IEmailSender, ResendEmailSender>(client =>
+                client.BaseAddress = new Uri("https://api.resend.com/"));
+        }
+        else
+        {
+            servizi.AddScoped<IEmailSender, SmtpEmailSender>();
+        }
         servizi.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 
         servizi.AddScoped<UtenteService>();
