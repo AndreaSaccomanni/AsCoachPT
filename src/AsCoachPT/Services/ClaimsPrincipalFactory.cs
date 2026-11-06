@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using AsCoach.Web.Domain;
+using AsCoachPT.Domain;
 
-namespace AsCoach.Web.Services;
+namespace AsCoachPT.Services;
 
 public static class ClaimsPrincipalFactory
 {

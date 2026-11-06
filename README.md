@@ -20,7 +20,7 @@ Il progetto React/Java resta invariato e non viene toccato da questa repository.
 
 ```
 AsCoach.sln
-src/AsCoach.Web/
+src/AsCoachPT/
   Components/Pages/      # Home, ChiSono, Servizi, Contatti, Login, Registrazione,
                          # Prenota, Prenotazioni, Utenti, Indirizzi, GestioneIndirizzi
   Components/Layout/     # Navbar, Footer, MainLayout (provider MudBlazor + tema)
@@ -34,7 +34,7 @@ src/AsCoach.Web/
 ## Avvio in Visual Studio
 
 1. Aprire `AsCoach.sln`.
-2. Impostare `AsCoach.Web` come progetto di avvio e premere F5.
+2. Impostare `AsCoachPT` come progetto di avvio e premere F5.
 
 In sviluppo la connessione predefinita è SQLite (`ascoach.db`). Per usare il clone PostgreSQL
 locale (`ascoach_dotnet`):
@@ -42,13 +42,13 @@ locale (`ascoach_dotnet`):
 ```bash
 dotnet user-secrets set "ConnectionStrings:Default" \
   "Host=localhost;Port=5432;Database=ascoach_dotnet;Username=postgres;Password=***" \
-  --project src/AsCoach.Web
+  --project src/AsCoachPT
 ```
 
 Da CLI:
 
 ```bash
-dotnet run --project src/AsCoach.Web
+dotnet run --project src/AsCoachPT
 ```
 
 ## Database
@@ -74,7 +74,7 @@ bloccare prenotazioni e registrazioni.
 
 ## Deploy (Render) e dominio
 
-1. Nuovo **Web Service** Docker dal repository, root directory `src/AsCoach.Web`.
+1. Nuovo **Web Service** Docker dal repository, root directory `src/AsCoachPT`.
 2. Env: `DATABASE_URL`, `MAIL_USERNAME`, `MAIL_PASSWORD`.
 3. Puntare `ascoach.it` / `www.ascoach.it` a questo servizio invece del sito statico React.
 

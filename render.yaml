@@ -2,7 +2,7 @@ services:
   - type: web
     name: alessandrosaccomannipt
     runtime: docker
-    rootDir: src/AsCoach.Web
+    rootDir: src/AsCoachPT
     dockerfilePath: ./Dockerfile
     plan: starter
     envVars:

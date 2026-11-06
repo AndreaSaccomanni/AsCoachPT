@@ -1,6 +1,6 @@
-using AsCoach.Web.Components;
-using AsCoach.Web.Data;
-using AsCoach.Web.Services;
+using AsCoachPT.Components;
+using AsCoachPT.Data;
+using AsCoachPT.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Antiforgery;

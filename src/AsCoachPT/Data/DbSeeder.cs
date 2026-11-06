@@ -1,7 +1,7 @@
-using AsCoach.Web.Domain;
+using AsCoachPT.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace AsCoach.Web.Data;
+namespace AsCoachPT.Data;
 
 public static class DbSeeder
 {

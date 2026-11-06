@@ -3,7 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace AsCoach.Web.Services;
+namespace AsCoachPT.Services;
 
 public class MailOptions
 {

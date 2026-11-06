@@ -1,8 +1,8 @@
-using AsCoach.Web.Data;
-using AsCoach.Web.Domain;
+using AsCoachPT.Data;
+using AsCoachPT.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace AsCoach.Web.Services;
+namespace AsCoachPT.Services;
 
 public class PrenotazioneService(AsCoachDbContext db, MailService mail)
 {

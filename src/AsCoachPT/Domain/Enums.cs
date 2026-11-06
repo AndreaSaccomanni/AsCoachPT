@@ -1,4 +1,4 @@
-namespace AsCoach.Web.Domain;
+namespace AsCoachPT.Domain;
 
 public enum UserRole
 {

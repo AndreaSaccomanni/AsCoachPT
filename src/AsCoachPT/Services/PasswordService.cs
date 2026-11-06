@@ -1,6 +1,6 @@
-using AsCoach.Web.Domain;
+using AsCoachPT.Domain;
 
-namespace AsCoach.Web.Services;
+namespace AsCoachPT.Services;
 
 public class PasswordService
 {

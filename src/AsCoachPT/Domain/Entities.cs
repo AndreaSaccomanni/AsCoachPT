@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace AsCoach.Web.Domain;
+namespace AsCoachPT.Domain;
 
 public class Utente
 {

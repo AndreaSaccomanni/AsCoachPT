@@ -1,6 +1,6 @@
-using AsCoach.Web.Domain;
+using AsCoachPT.Domain;
 
-namespace AsCoach.Web.Services;
+namespace AsCoachPT.Services;
 
 public sealed record AppUser(long Id, string Nome, string Email, string Username, UserRole Role)
 {
