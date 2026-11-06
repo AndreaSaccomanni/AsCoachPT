@@ -54,7 +54,7 @@
         </MudTable>
     }
 
-    <MudDialog @bind-Visible="modaleAperta" BackdropClick="false">
+    <MudDialog @bind-Visible="modaleAperta">
         <TitleContent>
             <MudText Typo="Typo.h6">Modifica Prenotazione</MudText>
         </TitleContent>
@@ -85,7 +85,7 @@
         </DialogActions>
     </MudDialog>
 
-    <MudDialog @bind-Visible="confermaAperta" BackdropClick="false">
+    <MudDialog @bind-Visible="confermaAperta">
         <TitleContent><MudText Typo="Typo.h6">Cancella prenotazione</MudText></TitleContent>
         <DialogContent>
             <MudText>Sei sicuro di voler cancellare questa prenotazione?</MudText>

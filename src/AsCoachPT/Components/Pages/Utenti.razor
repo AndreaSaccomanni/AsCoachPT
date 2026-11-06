@@ -50,7 +50,7 @@
         </MudTable>
     }
 
-    <MudDialog @bind-Visible="modaleModificaAperta" BackdropClick="false">
+    <MudDialog @bind-Visible="modaleModificaAperta">
         <TitleContent><MudText Typo="Typo.h6">Modifica Utente</MudText></TitleContent>
         <DialogContent>
             @if (!string.IsNullOrWhiteSpace(erroreModale))
@@ -74,7 +74,7 @@
         </DialogActions>
     </MudDialog>
 
-    <MudDialog @bind-Visible="modaleNuovoAperta" BackdropClick="false">
+    <MudDialog @bind-Visible="modaleNuovoAperta">
         <TitleContent><MudText Typo="Typo.h6">Aggiungi Nuovo Utente</MudText></TitleContent>
         <DialogContent>
             @if (!string.IsNullOrWhiteSpace(erroreModale))
@@ -99,7 +99,7 @@
         </DialogActions>
     </MudDialog>
 
-    <MudDialog @bind-Visible="confermaAperta" BackdropClick="false">
+    <MudDialog @bind-Visible="confermaAperta">
         <TitleContent><MudText Typo="Typo.h6">Cancella utente</MudText></TitleContent>
         <DialogContent>
             <MudText>Sei sicuro di voler cancellare questo utente?</MudText>
