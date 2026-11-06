@@ -81,3 +81,5 @@ jobs:
 
           echo "::error::Timeout in attesa del deploy."
           exit 1
+
+# Verifica del trigger: ogni push su main avvia un deploy Render.
