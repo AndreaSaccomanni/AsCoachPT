@@ -1,0 +1,40 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="Tema" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="App">
+    <Navbar />
+    <div class="content">
+        @Body
+    </div>
+    <Footer />
+</div>
+
+<div class="cursor-follower" id="cursorFollower"></div>
+
+@code {
+    private readonly MudTheme Tema = new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#ff8c00",
+            Secondary = "#ffb74d",
+            Background = "#000000",
+            Surface = "#1a1a1a",
+            AppbarBackground = "#0b0b0b",
+            TextPrimary = "#f8f9fa",
+            DrawerBackground = "#121212",
+            Success = "#2e7d32",
+            Error = "#d32f2f",
+            Warning = "#ff9800",
+            Info = "#0288d1"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "10px"
+        }
+    };
+}

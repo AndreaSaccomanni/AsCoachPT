@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: alessandrosaccomannipt
+    runtime: docker
+    rootDir: src/AsCoach.Web
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DATABASE_URL
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+    healthCheckPath: /

@@ -1,0 +1,230 @@
+@page "/prenotazioni"
+@attribute [Authorize]
+@inject PrenotazioneService PrenotazioniSvc
+@inject ServizioService ServiziSvc
+@inject IndirizzoService IndirizziSvc
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-8">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">@(isStaff ? "Tutte le prenotazioni" : "Le tue prenotazioni")</MudText>
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (prenotazioni.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning">Nessuna prenotazione attiva.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@Righe" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true" Elevation="2" Class="mt-4">
+            <HeaderContent>
+                <MudTh>#</MudTh>
+                <MudTh>Servizio</MudTh>
+                <MudTh>Data</MudTh>
+                <MudTh>Ora</MudTh>
+                <MudTh>Indirizzo</MudTh>
+                <MudTh>Note</MudTh>
+                @if (isStaff)
+                {
+                    <MudTh>Utente</MudTh>
+                }
+                <MudTh>Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="riga">
+                <MudTd DataLabel="#">@riga.Posizione</MudTd>
+                <MudTd DataLabel="Servizio">@riga.Prenotazione.Servizio.NomeServizio</MudTd>
+                <MudTd DataLabel="Data">@riga.Prenotazione.DataOra.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Ora">@riga.Prenotazione.DataOra.ToString("HH:mm")</MudTd>
+                <MudTd DataLabel="Indirizzo">@riga.Prenotazione.Indirizzo.IndirizzoCompleto - @riga.Prenotazione.Indirizzo.NomeStudio</MudTd>
+                <MudTd DataLabel="Note">@(string.IsNullOrWhiteSpace(riga.Prenotazione.Note) ? "Nessuna nota" : riga.Prenotazione.Note)</MudTd>
+                @if (isStaff)
+                {
+                    <MudTd DataLabel="Utente">@riga.Prenotazione.Utente.Nome @riga.Prenotazione.Utente.Cognome</MudTd>
+                }
+                <MudTd DataLabel="Azioni">
+                    <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => ApriModifica(riga.Prenotazione)">Modifica</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="() => ChiediEliminazione(riga.Prenotazione.Id)">Elimina</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudDialog @bind-Visible="modaleAperta" BackdropClick="false">
+        <TitleContent>
+            <MudText Typo="Typo.h6">Modifica Prenotazione</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudDatePicker Editable="true" @bind-Date="dataModifica" Label="Nuova data" Color="Color.Primary" Class="mb-4" />
+            <MudTimePicker Editable="true" @bind-Time="oraModifica" Label="Nuova ora" Color="Color.Primary" Class="mb-4" />
+            <MudSelect T="long" Label="Servizio" @bind-Value="servizioModifica" Class="mb-4">
+                @foreach (var servizio in servizi)
+                {
+                    <MudSelectItem T="long" Value="@servizio.Id">@servizio.NomeServizio</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="long" Label="Indirizzo" @bind-Value="indirizzoModifica" Class="mb-4">
+                @foreach (var indirizzo in indirizzi)
+                {
+                    <MudSelectItem T="long" Value="@indirizzo.Id">@indirizzo.NomeStudio - @indirizzo.IndirizzoCompleto</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField T="string" Label="Note" @bind-Value="noteModifica" Lines="3" Variant="Variant.Outlined" />
+            @if (!string.IsNullOrWhiteSpace(erroreModifica))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-4">@erroreModifica</MudAlert>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => modaleAperta = false">Chiudi</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SalvaModificaAsync" Disabled="salvando">Salva Modifiche</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-Visible="confermaAperta" BackdropClick="false">
+        <TitleContent><MudText Typo="Typo.h6">Cancella prenotazione</MudText></TitleContent>
+        <DialogContent>
+            <MudText>Sei sicuro di voler cancellare questa prenotazione?</MudText>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => confermaAperta = false">Annulla</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="EliminaConfermataAsync">Elimina</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudContainer>
+
+@code {
+    private record Riga(int Posizione, Prenotazione Prenotazione);
+
+    private List<Prenotazione> prenotazioni = new();
+    private List<Riga> Righe = new();
+    private List<Servizio> servizi = new();
+    private List<Indirizzo> indirizzi = new();
+    private bool loading = true;
+    private bool isStaff;
+    private bool salvando;
+    private bool modaleAperta;
+    private bool confermaAperta;
+    private string? erroreModifica;
+    private long idDaEliminare;
+    private long idInModifica;
+    private DateTime? dataModifica;
+    private TimeSpan? oraModifica;
+    private long servizioModifica;
+    private long indirizzoModifica;
+    private string? noteModifica;
+
+    [SupplyParameterFromQuery(Name = "created")]
+    public int? Created { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state = await AuthState.GetAuthenticationStateAsync();
+            var actor = ClaimsPrincipalFactory.ToAppUser(state.User) ?? throw new InvalidOperationException("Utente non autenticato");
+            isStaff = actor.IsStaff;
+            actorId = actor.Id;
+
+            servizi = ServiziSvc.GetAll();
+            indirizzi = IndirizziSvc.GetAll();
+            Carica();
+
+            if (Created == 1)
+            {
+                Snackbar.Add("Prenotazione confermata ✅", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void Carica()
+    {
+        prenotazioni = isStaff ? PrenotazioniSvc.GetAllFuture() : PrenotazioniSvc.GetForUtente(actorId);
+        Righe = prenotazioni.Select((p, i) => new Riga(i + 1, p)).ToList();
+    }
+
+    private long actorId;
+
+    private void ApriModifica(Prenotazione prenotazione)
+    {
+        idInModifica = prenotazione.Id;
+        dataModifica = prenotazione.DataOra.Date;
+        oraModifica = prenotazione.DataOra.TimeOfDay;
+        servizioModifica = prenotazione.ServizioId;
+        indirizzoModifica = prenotazione.IndirizzoId;
+        noteModifica = prenotazione.Note;
+        erroreModifica = null;
+        modaleAperta = true;
+    }
+
+    private async Task SalvaModificaAsync()
+    {
+        if (dataModifica is null || oraModifica is null) { erroreModifica = "Data e ora sono obbligatorie"; return; }
+
+        salvando = true;
+        erroreModifica = null;
+        try
+        {
+            var state = await AuthState.GetAuthenticationStateAsync();
+            var actor = ClaimsPrincipalFactory.ToAppUser(state.User) ?? throw new InvalidOperationException("Utente non autenticato");
+
+            var dataOra = DateOnly.FromDateTime(dataModifica.Value).ToDateTime(TimeOnly.FromTimeSpan(oraModifica.Value));
+            await PrenotazioniSvc.UpdateAsync(idInModifica, new UpdatePrenotazioneRequest
+            {
+                DataOraPrenotazione = dataOra,
+                ServizioId = servizioModifica,
+                IndirizzoId = indirizzoModifica,
+                Note = noteModifica
+            }, actor);
+
+            actorId = actor.Id;
+            Carica();
+            modaleAperta = false;
+            Snackbar.Add("Prenotazione aggiornata con successo", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            erroreModifica = ex.Message;
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private void ChiediEliminazione(long id)
+    {
+        idDaEliminare = id;
+        confermaAperta = true;
+    }
+
+    private async Task EliminaConfermataAsync()
+    {
+        try
+        {
+            var state = await AuthState.GetAuthenticationStateAsync();
+            var actor = ClaimsPrincipalFactory.ToAppUser(state.User) ?? throw new InvalidOperationException("Utente non autenticato");
+
+            await PrenotazioniSvc.DeleteAsync(idDaEliminare, actor);
+            actorId = actor.Id;
+            Carica();
+            Snackbar.Add("Prenotazione eliminata con successo", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

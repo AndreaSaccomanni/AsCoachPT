@@ -1,0 +1,146 @@
+@inject IJSRuntime JS
+
+<div class="container-fluid pt-4 mt-5 px-4" id="servizi">
+    <h2 class="text-center my-2 fs-1 fw-bold">I miei servizi</h2>
+
+    <div class="row justify-content-center">
+        @foreach (var servizio in Servizi)
+        {
+            <div class="col-lg-3 col-md-6 col-12 mt-4 mt-md-4 mb-md-4 d-flex card-wrapper" data-reveal>
+                <div class="card fixedCard flex-grow-1">
+                    <img class="card-img-top" src="@servizio.Immagine" alt="@servizio.Titolo" />
+                    <div class="overlay"></div>
+                    <div class="card-body">
+                        <h5 class="card-title text-center">@servizio.Titolo</h5>
+                        <p class="card-text text-center">@servizio.Descrizione</p>
+                        <button class="btn btn-link d-block mx-auto mt-2 text-decoration-none link-arancione"
+                                @onclick="() => Apri(servizio)">
+                            @(aperto?.Id == servizio.Id ? "Nascondi dettagli" : "Scopri di più")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!mobile)
+    {
+        <div class="row mt-5">
+            <div class="col">
+                @if (aperto is not null)
+                {
+                    <div class="dettagli-container">
+                        <h3 class="text-center mt-4">@aperto.Titolo</h3>
+                        <ul class="text-muted text-center list-unstyled">
+                            @foreach (var dettaglio in aperto.Dettagli)
+                            {
+                                <li class="mb-2">@((MarkupString)Grassetto(dettaglio))</li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (mobile && modaleAperta && aperto is not null)
+    {
+        <div class="modal d-block" style="background: rgba(0,0,0,.6);" @onclick="ChiudiModale">
+            <div class="modal-dialog modal-dialog-centered" @onclick:stopPropagation="true">
+                <div class="modal-content" style="background-color: #1a1a1a; color: white;">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title w-100 text-center">@aperto.Titolo</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="ChiudiModale"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="list-unstyled">
+                            @foreach (var dettaglio in aperto.Dettagli)
+                            {
+                                <li class="mb-3">@((MarkupString)Grassetto(dettaglio))</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool mobile;
+    private bool modaleAperta;
+    private ServizioCard? aperto;
+
+    private static readonly List<ServizioCard> Servizi = new()
+    {
+        new(1, "Piano di Allenamento Personalizzato", "Pianificazione di un ciclo di allenamenti o aggiornamento della scheda precedente.",
+            new[]
+            {
+                "**Valutazione iniziale**: Durante il primo incontro analizziamo il livello di allenamento, il punto di partenza e tracciamo la direzione da intraprendere.",
+                "**Programmazione**: Struttura del piano di allenamento su 8 settimane, personalizzato per durata, tipologia e impegni quotidiani.",
+                "**Supporto continuo**: Comunicazione costante ed eventuale follow-up per aggiustamenti durante il percorso.",
+                "**Check up finale**: Valutazione alla fine del percorso ed eventuale pianificazione del proseguimento."
+            },
+            "assets/images/consulenza.jpg"),
+        new(2, "Massaggi", "Massaggio rilassante per alleviare lo stress.",
+            new[]
+            {
+                "**Massaggio rilassante**: Prenditi cura di te e goditi un massaggio completo per ridurre lo stress e le tensioni emotive. 30 min | 1h",
+                "**Massaggio sportivo**: Tecniche manuali per favorire il recupero post esercizio o sciogliere contratture muscolari. 30 min | 1h"
+            },
+            "assets/images/rilassante.jpg"),
+        new(3, "Personal Training", "Allenamento 1 a 1",
+            new[]
+            {
+                "**Seduta di allenamento 1 a 1.**: Tecniche specifiche migliorano la flessibilità e riducono il rischio di lesioni muscolari.",
+                "**Allenamento individuale per calciatori - tecnica individuale - Ball Mastery (min.10 anni)**: ",
+                "**Allenamento per bambini 8+**:",
+                "**Allenamento cognitivo per anziani**: "
+            },
+            "assets/images/decontratturante.jpg"),
+        new(4, "Trattamento infortuni", "Percorso personalizzato per il recupero da infortuni, mirato a ripristinare mobilità, forza e funzionalità in sicurezza.",
+            new[]
+            {
+                "**Recupero post-infortunio**: Sedute 1 a 1 per recuperare lo stato di forma pre infortunio in accordo con il tuo fisioterapista",
+                "**Gestione delle problematiche**: Trattamento di problemi articolari o muscolari tramite il movimento",
+                "**Applicazione tape kinesiologico**: Favorisce il drenaggio linfatico e riduce il gonfiore a seguito di traumi o infiammazioni.",
+                "**Adatto a varie esigenze**: Utile in ambito sportivo, posturale o riabilitativo, per adulti e bambini."
+            },
+            "assets/images/taping.avif")
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            mobile = await JS.InvokeAsync<bool>("eval", "window.innerWidth < 768");
+            StateHasChanged();
+        }
+    }
+
+    private void Apri(ServizioCard servizio)
+    {
+        if (mobile)
+        {
+            aperto = servizio;
+            modaleAperta = true;
+            return;
+        }
+
+        aperto = aperto?.Id == servizio.Id ? null : servizio;
+    }
+
+    private void ChiudiModale()
+    {
+        modaleAperta = false;
+        aperto = null;
+    }
+
+    private static string Grassetto(string testo) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            System.Net.WebUtility.HtmlEncode(testo),
+            "\\*\\*(.*?)\\*\\*",
+            "<strong>$1</strong>");
+
+    public record ServizioCard(int Id, string Titolo, string Descrizione, string[] Dettagli, string Immagine);
+}

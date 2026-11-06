@@ -1,0 +1,99 @@
+@page "/indirizzo"
+@inject IndirizzoService IndirizziSvc
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-8 text-center">
+    <MudText Typo="Typo.h4" Color="Color.Primary">Tutti gli Indirizzi</MudText>
+    <MudText Typo="Typo.h6" Class="mb-6">
+        Qui puoi trovare tutti gli indirizzi e gli studi in cui lavoro, con le relative indicazioni stradali
+    </MudText>
+
+    @if (isStaff)
+    {
+        <div class="text-start mb-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/gestioneIndirizzi">Gestisci Indirizzi</MudButton>
+        </div>
+    }
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (indirizzi.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning">Nessun indirizzo trovato.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@Righe" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true" Elevation="2" Class="mb-8">
+            <HeaderContent>
+                <MudTh>#</MudTh>
+                <MudTh>Nome Studio</MudTh>
+                <MudTh>Indirizzo</MudTh>
+                <MudTh>Giorni Disponibili per Prenotare</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="riga">
+                <MudTd DataLabel="#">@riga.Posizione</MudTd>
+                <MudTd DataLabel="Studio">@riga.Indirizzo.NomeStudio</MudTd>
+                <MudTd DataLabel="Indirizzo">@riga.Indirizzo.Citta, @riga.Indirizzo.Via @riga.Indirizzo.NumeroCivico (@riga.Indirizzo.Provincia)</MudTd>
+                <MudTd DataLabel="Giorni">@(riga.Indirizzo.Giorni.Count > 0 ? string.Join(", ", riga.Indirizzo.Giorni) : "Nessun giorno assegnato")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    @foreach (var indirizzo in indirizzi)
+    {
+        <MudPaper Elevation="2" Class="pa-4 mb-6 text-start">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <MudText Typo="Typo.h6" Color="Color.Primary">@indirizzo.NomeStudio</MudText>
+                    <MudText Typo="Typo.body2">@indirizzo.Via @indirizzo.NumeroCivico, @indirizzo.Citta (@indirizzo.Provincia)</MudText>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.Map" Color="Color.Primary" Size="Size.Large"
+                               OnClick="() => ToggleMap(indirizzo.Id)" aria-label="Mostra mappa" />
+            </div>
+
+            @if (mappaAperta == indirizzo.Id)
+            {
+                <div style="width: 100%; height: 400px;" class="mt-4">
+                    <iframe width="100%" height="100%" style="border: 0; border-radius: 10px;" loading="lazy" allowfullscreen
+                            referrerpolicy="no-referrer-when-downgrade"
+                            src="@($"https://www.google.com/maps?q={indirizzo.Latitudine},{indirizzo.Longitudine}&hl=it&z=15&t=k&output=embed")"
+                            title="Mappa @indirizzo.NomeStudio"></iframe>
+                </div>
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private record Riga(int Posizione, Indirizzo Indirizzo);
+
+    private List<Indirizzo> indirizzi = new();
+    private List<Riga> Righe = new();
+    private bool loading = true;
+    private bool isStaff;
+    private long? mappaAperta;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state = await AuthState.GetAuthenticationStateAsync();
+            isStaff = state.User.IsInRole(nameof(UserRole.ADMIN)) || state.User.IsInRole(nameof(UserRole.PERSONAL_TRAINER));
+            indirizzi = IndirizziSvc.GetAll();
+            Righe = indirizzi.Select((i, idx) => new Riga(idx + 1, i)).ToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ToggleMap(long id) => mappaAperta = mappaAperta == id ? null : id;
+}

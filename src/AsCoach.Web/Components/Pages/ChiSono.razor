@@ -1,0 +1,78 @@
+@page "/chiSono"
+
+<div class="container chi-sono-container">
+    <div class="row align-items-center">
+        <div class="col-md-4 text-center my-2">
+            <img src="assets/images/immagineProfilo.jpg" alt="Alessandro Saccomanni"
+                 class="foto-profilo mt-5 fade-image" style="max-width: 100%;" />
+        </div>
+
+        <div class="col-md-8 text-start">
+            <div class="card-wrapper from-right">
+                <div>
+                    <h2 class="mb-5 fw-bold pb-3 text-center chiSono">Chi sono?</h2>
+                </div>
+                <p class="presentazione">
+                    Mi chiamo <strong>Alessandro Saccomanni</strong>, sono un <strong>Chinesiologo Sportivo</strong> e <strong>Personal Trainer</strong>. Il mio
+                    percorso di studi mi ha permesso di sviluppare un <strong>approccio olistico</strong> all’attività fisica che mi permette di adattarla alle
+                    <strong>necessità individuali</strong> considerando anche gli <strong>aspetti psicologici</strong> dei clienti, che siano atleti, novizi o
+                    appassionati. Il metodo che utilizzo è incentrato sul percorso da compiere <strong>insieme</strong> piuttosto che sulla meta da raggiungere, in
+                    modo da poter instaurare fiducia e consapevolezza di sé nella persona che assisto. La mia passione per tutto ciò che riguarda il movimento umano
+                    stimola la <strong>ricerca</strong> e l’<strong>aggiornamento</strong> costanti per garantirvi un servizio efficace e
+                    <strong>science-based</strong>.
+                </p>
+                <p class="mt-2 fs-6 presentazione">
+                    Credo che ogni persona abbia <strong>bisogni unici</strong>, per questo il mio approccio è <strong>completamente personalizzato</strong>. Se vuoi
+                    migliorare il tuo stile di vita e prenderti cura del tuo corpo, <strong>sono qui per aiutarti!</strong>
+                </p>
+
+                <div class="d-flex align-items-center mt-5">
+                    <h4 class="mt-2 cursor-pointer">Percorso di studi</h4>
+                    <button class="btn btn-warning btn-md ms-auto ms-md-4" @onclick="() => openStudi = !openStudi">scopri di più</button>
+                </div>
+                @if (openStudi)
+                {
+                    <ul>
+                        <li>
+                            <div class="d-flex">
+                                <span class="me-2">📖</span>
+                                <span>Laurea Triennale in Scienze motorie e Sportive presso<strong> Università degli studi di Roma “Foro Italico”</strong></span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="d-flex">
+                                <span class="me-2">🎓</span>
+                                <span>Laurea magistrale in Scienza e tecnica dello Sport presso<strong> Università degli studi di Roma “Foro Italico”</strong></span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="d-flex">
+                                <span class="me-2">🧘‍♂️</span>
+                                <span>Massaggiatore sportivo CONI – <strong>Istituto ATS</strong></span>
+                            </div>
+                        </li>
+                    </ul>
+                }
+
+                <div class="d-flex align-items-center mt-4">
+                    <h4 class="mt-2 cursor-pointer">Esperienze</h4>
+                    <button class="btn btn-warning btn-md ms-auto ms-md-4" @onclick="() => openEsperienze = !openEsperienze">scopri di più</button>
+                </div>
+                @if (openEsperienze)
+                {
+                    <ul>
+                        <li><div class="d-flex"><span class="me-2">✅</span><span>Istruttore Ginnastica Posturale presso Sporting Village 2.0</span></div></li>
+                        <li><div class="d-flex"><span class="me-2">✅</span><span>Istruttore attività motoria per l’età evolutiva</span></div></li>
+                        <li><div class="d-flex"><span class="me-2">✅</span><span>Massaggiatore</span></div></li>
+                        <li><div class="d-flex"><span class="me-2">✅</span><span>Trattamenti personalizzati per atleti e appassionati di fitness</span></div></li>
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool openStudi;
+    private bool openEsperienze;
+}

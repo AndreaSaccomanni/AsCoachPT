@@ -1,0 +1,55 @@
+@inject NavigationManager NavigationManager
+
+<footer class="footer-gradient @(IsHome ? "footer-home" : "footer-servizi") text-white py-4">
+    <div class="container">
+        <hr class="footer-divider mb-3" />
+        <div class="row justify-content-center text-center text-md-start">
+            <div class="col-sm-6 col-md-4 mb-3 text-center">
+                <h5 class="footer-title">CONTATTI</h5>
+                <div class="d-flex align-items-center justify-content-center">
+                    <span class="contact-icon">📧</span>
+                    <a href="mailto:saccales@hotmail.com" class="footer-link ms-2">saccales@hotmail.com</a>
+                </div>
+                <div class="d-flex align-items-center justify-content-center mt-2">
+                    <span class="contact-icon">📞</span>
+                    <a href="tel:+393772082714" class="footer-link ms-2">+39 377 208 2714</a>
+                </div>
+                <div class="d-flex align-items-center justify-content-center mt-2">
+                    <span class="contact-icon">📍</span>
+                    <a href="https://www.google.it/maps/place/Via+Madonna+del+Prato,+5,+05023+Civitella+del+Lago+TR/@@42.70992,12.2821916,17z"
+                       class="footer-link ms-2" target="_blank" rel="noopener noreferrer">
+                        Via Madonna del Prato 5, Civitella del Lago (TR)
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-md-4 mb-3 text-center d-none d-md-block">
+                <h5 class="footer-title">LINK UTILI</h5>
+                <ul>
+                    <li><a href="/chiSono" class="footer-link">Chi Sono</a></li>
+                    <li><a href="/servizi" class="footer-link">Servizi</a></li>
+                    <li><a href="/indirizzo" class="footer-link">Indirizzi</a></li>
+                </ul>
+            </div>
+
+            <div class="col-sm-6 col-md-4 mb-3 text-center">
+                <h5 class="footer-title">SEGUIMI</h5>
+                <a href="https://www.instagram.com/_as_coach/" target="_blank" rel="noopener noreferrer" class="me-3 footer-social">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" class="footer-social">
+                    <i class="fab fa-facebook"></i>
+                </a>
+            </div>
+        </div>
+
+        <hr class="footer-divider" />
+        <div class="text-center mt-2">
+            <small>© @DateTime.Now.Year Alessandro Saccomanni - Personal Trainer</small>
+        </div>
+    </div>
+</footer>
+
+@code {
+    private bool IsHome => new Uri(NavigationManager.Uri).AbsolutePath is "/" or "";
+}
