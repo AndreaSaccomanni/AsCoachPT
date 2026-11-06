@@ -1,9 +1,7 @@
 @inject ContattiService Contatti
 @inject ISnackbar Snackbar
 
-<MudPaper Elevation="4" Class="pa-6 container-form" Style="background: rgba(20,20,20,.85);">
-    <MudText Typo="Typo.h5" Class="mb-4">Contattami</MudText>
-
+<MudPaper Elevation="0" Class="form-card">
     <MudGrid Spacing="3">
         <MudItem xs="12" sm="6">
             <MudTextField T="string" Label="Nome" @bind-Value="form.Nome" Variant="Variant.Outlined" Required="true" />
@@ -19,9 +17,11 @@
         </MudItem>
     </MudGrid>
 
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="InviaAsync" Disabled="inviando" Class="mt-2">
-        Invia
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="InviaAsync" Disabled="inviando" Class="mt-4 w-100 btn-contatti">
+        Invia richiesta
     </MudButton>
+
+    <p class="form-note">I campi contrassegnati con * sono obbligatori.</p>
 
     @if (campiNonValidi)
     {

@@ -1,18 +1,24 @@
 @inject IJSRuntime JS
+@implements IAsyncDisposable
 
 @*
     Sezione servizi della home.
     I contenuti sono editoriali (non provengono dal database): sono definiti in SchedeServizi.
-    Su desktop i dettagli si aprono sotto le card, su mobile in una finestra modale.
+    Con DettagliInModale i dettagli si aprono in un dialogo sopra la pagina (home); altrimenti
+    su desktop si aprono nel pannello sotto le card (pagina Servizi).
 *@
 <div class="container-fluid pt-4 mt-5 px-4" id="servizi">
-    <h2 class="text-center my-2 fs-1 fw-bold">I miei servizi</h2>
+    <div class="section-head">
+        <p class="section-eyebrow">Servizi</p>
+        <h2 class="section-title">I miei servizi</h2>
+        <p class="section-sub">Percorsi di allenamento, massaggio e recupero costruiti sulle tue esigenze.</p>
+    </div>
 
-    <div class="row justify-content-center">
+    <div class="row g-4 justify-content-center">
         @foreach (var servizio in SchedeServizi)
         {
-            <div class="col-lg-3 col-md-6 col-12 mt-4 mt-md-4 mb-md-4 d-flex card-wrapper">
-                <div class="card fixedCard flex-grow-1">
+            <div class="col-lg-3 col-md-6 col-12 d-flex card-wrapper">
+                <article class="card fixedCard flex-grow-1">
                     <img class="card-img-top"
                          src="@servizio.ImmagineSrc"
                          srcset="@servizio.ImmagineSrcset"
@@ -22,24 +28,25 @@
                          alt="@servizio.Titolo"
                          loading="lazy"
                          decoding="async" />
-                    <div class="overlay"></div>
                     <div class="card-body">
-                        <h5 class="card-title text-center">@servizio.Titolo</h5>
-                        <p class="card-text text-center">@servizio.Descrizione</p>
+                        <h5 class="card-title">@servizio.Titolo</h5>
+                        <p class="card-text">@servizio.Descrizione</p>
                         <button type="button"
-                                class="btn btn-link d-block mx-auto mt-2 text-decoration-none link-arancione"
-                                aria-expanded="@(aperto?.Id == servizio.Id)"
+                                class="btn btn-servizio mt-auto"
+                                aria-haspopup="@(DettagliInModale ? "dialog" : null)"
+                                aria-expanded="@(aperto?.Id == servizio.Id ? "true" : "false")"
                                 aria-controls="dettagli-servizio-@servizio.Id"
                                 @onclick="() => Apri(servizio)">
                             @(aperto?.Id == servizio.Id ? "Nascondi dettagli" : "Scopri di più")
+                            <i class="fas @(aperto?.Id == servizio.Id ? "fa-chevron-up" : "fa-arrow-right")" aria-hidden="true"></i>
                         </button>
                     </div>
-                </div>
+                </article>
             </div>
         }
     </div>
 
-    @if (!mobile)
+    @if (!mobile && !DettagliInModale)
     {
         <div class="row mt-5">
             <div class="col">
@@ -47,7 +54,7 @@
                 {
                     <div class="dettagli-container" id="dettagli-servizio-@aperto.Id">
                         <h3 class="text-center mt-4">@aperto.Titolo</h3>
-                        <ul class="text-muted text-center list-unstyled">
+                        <ul class="text-muted list-unstyled">
                             @foreach (var dettaglio in aperto.Dettagli)
                             {
                                 <li class="mb-2">@((MarkupString)Grassetto(dettaglio))</li>
@@ -59,25 +66,33 @@
         </div>
     }
 
-    @if (mobile && modaleAperta && aperto is not null)
+    @if (modaleAperta && aperto is not null)
     {
-        <div class="modal d-block modal-servizi" style="background: rgba(0,0,0,.6);"
-             role="dialog" aria-modal="true" aria-labelledby="titolo-modale-servizio"
-             tabindex="-1" @onclick="ChiudiModale" @onkeydown="OnKeyDown">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" @onclick:stopPropagation="true">
-                <div class="modal-content" style="background-color: #1a1a1a; color: white;">
-                    <div class="modal-header border-0">
-                        <h5 class="modal-title w-100 text-center" id="titolo-modale-servizio">@aperto.Titolo</h5>
-                        <button type="button" class="btn-close btn-close-white" aria-label="Chiudi" @onclick="ChiudiModale"></button>
+        <div class="modal-servizio" role="presentation" @onclick="ChiudiModale">
+            <div class="modal-servizio-panel"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="titolo-modale-servizio"
+                 tabindex="-1"
+                 @ref="pannello"
+                 @onclick:stopPropagation="true"
+                 @onkeydown="OnKeyDown">
+                <div class="modal-servizio-head">
+                    <div>
+                        <p class="section-eyebrow mb-1">Servizio</p>
+                        <h5 id="titolo-modale-servizio">@aperto.Titolo</h5>
                     </div>
-                    <div class="modal-body">
-                        <ul class="list-unstyled">
-                            @foreach (var dettaglio in aperto.Dettagli)
-                            {
-                                <li class="mb-3">@((MarkupString)Grassetto(dettaglio))</li>
-                            }
-                        </ul>
-                    </div>
+                    <button type="button" class="modal-servizio-close" aria-label="Chiudi i dettagli" @onclick="ChiudiModale">
+                        <i class="fas fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="modal-servizio-body">
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var dettaglio in aperto.Dettagli)
+                        {
+                            <li>@((MarkupString)Grassetto(dettaglio))</li>
+                        }
+                    </ul>
                 </div>
             </div>
         </div>
@@ -85,8 +100,17 @@
 </div>
 
 @code {
+    /// <summary>
+    /// Apre i dettagli in un dialogo sopra la pagina invece che nel pannello sotto le card.
+    /// Usato dalla home, dove il pannello costringerebbe a scorrere.
+    /// </summary>
+    [Parameter]
+    public bool DettagliInModale { get; set; }
+
     private bool mobile;
     private bool modaleAperta;
+    private bool daFocalizzare;
+    private ElementReference pannello;
     private ServizioCard? aperto;
 
     /// <summary>
@@ -140,58 +164,113 @@
     };
 
     /// <summary>
-    /// Determina una sola volta se il layout è mobile, per scegliere tra dettagli inline
-    /// (desktop) e finestra modale (telefono). La larghezza è letta via JS, senza eval.
+    /// Determina una sola volta se il layout è mobile (per il pannello inline della pagina
+    /// Servizi) e porta il focus sul dialogo appena viene aperto.
     /// </summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
         {
-            return;
+            try
+            {
+                mobile = await JS.InvokeAsync<bool>("asCoachIsMobile");
+            }
+            catch (JSException)
+            {
+                // Se il JS non è disponibile (es. prerender) resta il layout desktop, che è sempre leggibile.
+                mobile = false;
+            }
+
+            StateHasChanged();
         }
 
-        try
+        if (modaleAperta && daFocalizzare)
         {
-            mobile = await JS.InvokeAsync<bool>("asCoachIsMobile");
-        }
-        catch (JSException)
-        {
-            // Se il JS non è disponibile (es. prerender) resta il layout desktop, che è sempre leggibile.
-            mobile = false;
-        }
+            daFocalizzare = false;
 
-        StateHasChanged();
+            try
+            {
+                await pannello.FocusAsync(preventScroll: true);
+            }
+            catch (JSException)
+            {
+                // Focus non disponibile (prerender): Escape funziona comunque sul body.
+            }
+        }
     }
 
     /// <summary>
-    /// Apre o chiude i dettagli del servizio: modale su mobile, pannello inline su desktop.
-    /// Un secondo clic sullo stesso servizio chiude il pannello.
+    /// Apre i dettagli del servizio: dialogo quando richiesto (home) o su telefono,
+    /// pannello inline sulla pagina Servizi. Un secondo clic sullo stesso servizio
+    /// chiude il pannello inline.
     /// </summary>
-    private void Apri(ServizioCard servizio)
+    private async Task Apri(ServizioCard servizio)
     {
-        if (mobile)
+        if (mobile || DettagliInModale)
         {
             aperto = servizio;
             modaleAperta = true;
+            daFocalizzare = true;
+            await BloccaScorrimentoAsync(true);
             return;
         }
 
         aperto = aperto?.Id == servizio.Id ? null : servizio;
     }
 
-    /// <summary>Chiude la modale mobile e azzera il servizio selezionato.</summary>
-    private void ChiudiModale()
+    /// <summary>Chiude il dialogo e ripristina scroll e focus della pagina.</summary>
+    private async Task ChiudiModale()
     {
+        if (!modaleAperta)
+        {
+            return;
+        }
+
         modaleAperta = false;
         aperto = null;
+        await BloccaScorrimentoAsync(false);
     }
 
-    /// <summary>Gestisce il tasto Escape per chiudere la modale come una finestra nativa.</summary>
-    private void OnKeyDown(KeyboardEventArgs args)
+    /// <summary>Gestisce il tasto Escape per chiudere il dialogo come una finestra nativa.</summary>
+    private async Task OnKeyDown(KeyboardEventArgs args)
     {
         if (args.Key == "Escape")
         {
-            ChiudiModale();
+            await ChiudiModale();
+        }
+    }
+
+    /// <summary>
+    /// Blocca lo scroll della pagina mentre il dialogo è aperto e, alla chiusura,
+    /// riporta il focus sull'elemento che aveva aperto i dettagli.
+    /// </summary>
+    private async Task BloccaScorrimentoAsync(bool apri)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("asCoachModal", apri);
+        }
+        catch (JSException)
+        {
+            // Prerender o interop non disponibile: il dialogo resta usabile comunque.
+        }
+    }
+
+    /// <summary>Rilascia lo scroll se l'utente lascia la pagina con il dialogo aperto.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (!modaleAperta)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("asCoachModal", false);
+        }
+        catch (Exception)
+        {
+            // Circuito già chiuso: non c'è nulla da ripristinare.
         }
     }
 
