@@ -1,0 +1,83 @@
+name: Deploy su Render
+
+# Dopo il merge in main il sito pubblicato (ascoach.it) si aggiorna da solo:
+# il workflow chiede a Render un deploy del commit appena pushato e ne segue lo stato,
+# così l'esito del deploy è visibile anche nella scheda Actions di GitHub.
+#
+# Richiede un secret di repository: RENDER_API_KEY (Render Dashboard → Account Settings → API Keys).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-render
+  cancel-in-progress: false
+
+env:
+  RENDER_SERVICE_ID: srv-d7jt83flk1mc738d3lag
+  RENDER_API: https://api.render.com/v1
+
+jobs:
+  deploy:
+    name: Deploy produzione
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Avvia il deploy del commit
+        id: avvio
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RENDER_API_KEY:-}" ]; then
+            echo "::error::Manca il secret RENDER_API_KEY nel repository."
+            exit 1
+          fi
+
+          risposta=$(curl -sS -X POST "$RENDER_API/services/$RENDER_SERVICE_ID/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"commitId\": \"${{ github.sha }}\", \"clearCache\": \"do_not_clear\"}")
+
+          deploy_id=$(echo "$risposta" | jq -r '.id // empty')
+          if [ -z "$deploy_id" ]; then
+            echo "::error::Render non ha restituito un id di deploy: $risposta"
+            exit 1
+          fi
+
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+          echo "Deploy avviato: $deploy_id"
+
+      - name: Attendi l'esito del deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          DEPLOY_ID: ${{ steps.avvio.outputs.deploy_id }}
+        run: |
+          set -uo pipefail
+
+          for tentativo in $(seq 1 120); do
+            stato=$(curl -sS "$RENDER_API/services/$RENDER_SERVICE_ID/deploys/$DEPLOY_ID" \
+              -H "Authorization: Bearer $RENDER_API_KEY" | jq -r '.status // "unknown"')
+
+            echo "[$tentativo] stato: $stato"
+
+            case "$stato" in
+              live)
+                echo "Deploy completato: https://ascoach.it"
+                exit 0
+                ;;
+              build_failed|update_failed|canceled|pre_deploy_failed)
+                echo "::error::Deploy fallito ($stato)."
+                exit 1
+                ;;
+            esac
+
+            sleep 10
+          done
+
+          echo "::error::Timeout in attesa del deploy."
+          exit 1
