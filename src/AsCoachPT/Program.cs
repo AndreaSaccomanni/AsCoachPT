@@ -174,32 +174,6 @@ app.MapPost("/auth/register", async (HttpContext http, UtenteService utenti, IFo
     return Results.Redirect("/login?registered=1");
 }).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
 
-app.MapGet("/internal/diag", (HttpContext http) =>
-{
-    var token = Environment.GetEnvironmentVariable("IMPORT_TOKEN");
-    if (string.IsNullOrWhiteSpace(token) || http.Request.Headers["X-Import-Token"] != token)
-    {
-        return Results.NotFound();
-    }
-
-    var root = AppContext.BaseDirectory;
-    var framework = Path.Combine(root, "wwwroot", "_framework");
-    var manifest = Path.Combine(root, "AsCoachPT.staticwebassets.endpoints.json");
-    return Results.Json(new
-    {
-        baseDirectory = root,
-        frameworkExists = Directory.Exists(framework),
-        frameworkFiles = Directory.Exists(framework) ? Directory.GetFiles(framework).Length : 0,
-        blazorWebExists = File.Exists(Path.Combine(framework, "blazor.web.js")),
-        manifestExists = File.Exists(manifest),
-        manifestHasBlazor = File.Exists(manifest) && File.ReadAllText(manifest).Contains("blazor.web.js"),
-        manifestSize = File.Exists(manifest) ? new FileInfo(manifest).Length : 0,
-        wwwrootDirs = Directory.Exists(Path.Combine(root, "wwwroot")) ? Directory.GetDirectories(Path.Combine(root, "wwwroot")).Select(d => Path.GetFileName(d)).ToArray() : Array.Empty<string>(),
-        dotnetVersion = Esegui("dotnet", "--version"),
-        sdkList = Esegui("dotnet", "--list-sdks")
-    });
-}).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
-
 app.MapPost("/auth/logout", async (HttpContext http) =>
 {
     await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -214,23 +188,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-
-static string Esegui(string file, string args)
-{
-    try
-    {
-        using var processo = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(file, args)
-        {
-            RedirectStandardOutput = true,
-            UseShellExecute = false
-        });
-        return processo is null ? "n/a" : processo.StandardOutput.ReadToEnd().Trim();
-    }
-    catch (Exception ex)
-    {
-        return "err: " + ex.Message;
-    }
-}
 
 static string NormalizzaPostgres(string connectionString)
 {

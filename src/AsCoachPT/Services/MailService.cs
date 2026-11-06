@@ -52,7 +52,7 @@ public class MailService(IOptions<MailOptions> options, ILogger<MailService> log
 
             message.Body = new TextPart("plain") { Text = contenuto };
 
-            using var client = new SmtpClient();
+            using var client = new SmtpClient { Timeout = 15000 };
             await client.ConnectAsync(_options.Host, _options.Port, SocketOptions);
             if (!string.IsNullOrWhiteSpace(_options.Username))
             {
