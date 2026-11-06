@@ -1,23 +1,22 @@
 @page "/chiSono"
 
 <div class="container chi-sono-container">
-    <div class="row align-items-center">
-        <div class="col-md-4 text-center my-2">
+    <div class="row g-5 align-items-center">
+        <div class="col-lg-4 text-center my-2">
             <img src="assets/images/immagineProfilo-720.webp"
                  srcset="assets/images/immagineProfilo-360.webp 360w, assets/images/immagineProfilo-720.webp 720w"
-                 sizes="(max-width: 768px) 240px, 333px"
+                 sizes="(max-width: 768px) 240px, 420px"
                  width="720" height="1477"
                  alt="Alessandro Saccomanni"
-                 class="foto-profilo mt-5 fade-image"
+                 class="foto-profilo fade-image"
                  loading="lazy"
                  decoding="async" />
         </div>
 
-        <div class="col-md-8 text-start">
+        <div class="col-lg-8 text-start">
             <div class="card-wrapper from-right">
-                <div>
-                    <h2 class="mb-5 fw-bold pb-3 text-center chiSono">Chi sono?</h2>
-                </div>
+                <p class="section-eyebrow">Chi sono</p>
+                <h2 class="section-title chiSono mb-4">Chi sono?</h2>
                 <p class="presentazione">
                     Mi chiamo <strong>Alessandro Saccomanni</strong>, sono un <strong>Chinesiologo Sportivo</strong> e <strong>Personal Trainer</strong>. Il mio
                     percorso di studi mi ha permesso di sviluppare un <strong>approccio olistico</strong> all’attività fisica che mi permette di adattarla alle
@@ -27,58 +26,86 @@
                     stimola la <strong>ricerca</strong> e l’<strong>aggiornamento</strong> costanti per garantirvi un servizio efficace e
                     <strong>science-based</strong>.
                 </p>
-                <p class="mt-2 fs-6 presentazione">
+                <p class="presentazione presentazione-seconda">
                     Credo che ogni persona abbia <strong>bisogni unici</strong>, per questo il mio approccio è <strong>completamente personalizzato</strong>. Se vuoi
                     migliorare il tuo stile di vita e prenderti cura del tuo corpo, <strong>sono qui per aiutarti!</strong>
                 </p>
 
-                <div class="d-flex align-items-center mt-5">
-                    <h4 class="mt-2 cursor-pointer">Percorso di studi</h4>
-                    <button class="btn btn-warning btn-md ms-auto ms-md-4" @onclick="() => openStudi = !openStudi">scopri di più</button>
-                </div>
-                @if (openStudi)
-                {
-                    <ul>
-                        <li>
-                            <div class="d-flex">
-                                <span class="me-2">📖</span>
-                                <span>Laurea Triennale in Scienze motorie e Sportive presso<strong> Università degli studi di Roma “Foro Italico”</strong></span>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="d-flex">
-                                <span class="me-2">🎓</span>
-                                <span>Laurea magistrale in Scienza e tecnica dello Sport presso<strong> Università degli studi di Roma “Foro Italico”</strong></span>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="d-flex">
-                                <span class="me-2">🧘‍♂️</span>
-                                <span>Massaggiatore sportivo CONI – <strong>Istituto ATS</strong></span>
-                            </div>
-                        </li>
-                    </ul>
-                }
-
-                <div class="d-flex align-items-center mt-4">
-                    <h4 class="mt-2 cursor-pointer">Esperienze</h4>
-                    <button class="btn btn-warning btn-md ms-auto ms-md-4" @onclick="() => openEsperienze = !openEsperienze">scopri di più</button>
-                </div>
-                @if (openEsperienze)
-                {
-                    <ul>
-                        <li><div class="d-flex"><span class="me-2">✅</span><span>Istruttore Ginnastica Posturale presso Sporting Village 2.0</span></div></li>
-                        <li><div class="d-flex"><span class="me-2">✅</span><span>Istruttore attività motoria per l’età evolutiva</span></div></li>
-                        <li><div class="d-flex"><span class="me-2">✅</span><span>Massaggiatore</span></div></li>
-                        <li><div class="d-flex"><span class="me-2">✅</span><span>Trattamenti personalizzati per atleti e appassionati di fitness</span></div></li>
-                    </ul>
-                }
+                <ul class="chi-sono-tags" aria-label="Ruoli">
+                    <li>Chinesiologo sportivo</li>
+                    <li>Massaggiatore CONI</li>
+                    <li>Personal &amp; Performance Trainer</li>
+                    <li>Preparatore atletico U15–U16</li>
+                </ul>
             </div>
         </div>
     </div>
-</div>
 
-@code {
-    private bool openStudi;
-    private bool openEsperienze;
-}
+    <div class="row g-4 mt-2">
+        <div class="col-lg-6">
+            <section class="info-panel">
+                <h3 class="info-panel-title"><i class="fas fa-graduation-cap" aria-hidden="true"></i> Percorso di studi</h3>
+                <ol class="timeline">
+                    <li>
+                        <span class="timeline-dot" aria-hidden="true"></span>
+                        <p class="timeline-title">Laurea triennale in Scienze Motorie e Sportive</p>
+                        <p class="timeline-meta">Università degli Studi di Roma “Foro Italico”</p>
+                    </li>
+                    <li>
+                        <span class="timeline-dot" aria-hidden="true"></span>
+                        <p class="timeline-title">Laurea magistrale in Scienza e Tecnica dello Sport</p>
+                        <p class="timeline-meta">Università degli Studi di Roma “Foro Italico”</p>
+                    </li>
+                    <li>
+                        <span class="timeline-dot" aria-hidden="true"></span>
+                        <p class="timeline-title">Massaggiatore sportivo CONI</p>
+                        <p class="timeline-meta">Istituto ATS</p>
+                    </li>
+                </ol>
+            </section>
+        </div>
+
+        <div class="col-lg-6">
+            <section class="info-panel">
+                <h3 class="info-panel-title"><i class="fas fa-dumbbell" aria-hidden="true"></i> Esperienze</h3>
+                <ul class="exp-list">
+                    <li>
+                        <i class="fas fa-futbol" aria-hidden="true"></i>
+                        <span>
+                            <span class="exp-title">Preparatore atletico U15–U16</span>
+                            <span class="exp-meta">Categorie giovanili</span>
+                        </span>
+                    </li>
+                    <li>
+                        <i class="fas fa-bolt" aria-hidden="true"></i>
+                        <span>
+                            <span class="exp-title">Personal &amp; Performance Trainer</span>
+                            <span class="exp-meta">Percorsi individuali di forza e performance</span>
+                        </span>
+                    </li>
+                    <li>
+                        <i class="fas fa-spa" aria-hidden="true"></i>
+                        <span>
+                            <span class="exp-title">Istruttore ginnastica posturale</span>
+                            <span class="exp-meta">Sporting Village 2.0</span>
+                        </span>
+                    </li>
+                    <li>
+                        <i class="fas fa-child" aria-hidden="true"></i>
+                        <span>
+                            <span class="exp-title">Istruttore attività motoria per l’età evolutiva</span>
+                            <span class="exp-meta">Bambini e ragazzi</span>
+                        </span>
+                    </li>
+                    <li>
+                        <i class="fas fa-hand-holding-heart" aria-hidden="true"></i>
+                        <span>
+                            <span class="exp-title">Massaggiatore sportivo</span>
+                            <span class="exp-meta">Trattamenti personalizzati per atleti e appassionati</span>
+                        </span>
+                    </li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</div>

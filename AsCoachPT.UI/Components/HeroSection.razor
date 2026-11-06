@@ -4,17 +4,26 @@
 
 <header class="hero-section d-flex justify-content-center align-items-center text-center">
     <div class="hero-content text-white">
-        <section class="text-center d-flex flex-column justify-content-center align-items-center">
-            <AuthorizeView>
-                <Authorized Context="auth">
-                    <h2 class="my-4 display-3 fw-bold nome-utente font-Arvo">Bentornato @(auth.User.FindFirst("nome")?.Value ?? auth.User.Identity?.Name)</h2>
-                </Authorized>
-            </AuthorizeView>
-            <h1 class="display-4 fw-bold mt-4">Migliora il tuo benessere!</h1>
-            <p class="lead">Scopri un percorso personalizzato per migliorare la tua forma fisica con consulenze personalizzate e massaggi mirati.</p>
-        </section>
-        <button class="btn btn-warning btn-md mt-3" @onclick="Scorri">Scopri di più</button>
+        <AuthorizeView>
+            <Authorized Context="auth">
+                <p class="hero-eyebrow">Bentornato</p>
+                <h2 class="hero-greeting display-3 fw-bold nome-utente font-Arvo">@(auth.User.FindFirst("nome")?.Value ?? auth.User.Identity?.Name)</h2>
+            </Authorized>
+        </AuthorizeView>
+
+        <p class="hero-eyebrow">Personal Trainer · Chinesiologo Sportivo</p>
+        <h1 class="hero-title">Migliora il tuo <span class="hero-accent">benessere</span>!</h1>
+        <p class="hero-lead">Scopri un percorso personalizzato per migliorare la tua forma fisica con consulenze personalizzate e massaggi mirati.</p>
+
+        <div class="hero-actions">
+            <button type="button" class="btn btn-warning btn-lg" @onclick="Scorri">Scopri i servizi</button>
+            <a class="btn btn-outline-hero btn-lg" href="/creaprenotazione">Prenota una consulenza</a>
+        </div>
     </div>
+
+    <span class="hero-scroll" aria-hidden="true">
+        <i class="fas fa-chevron-down"></i>
+    </span>
 </header>
 
 @code {

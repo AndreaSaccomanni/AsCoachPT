@@ -1,13 +1,14 @@
 @inject NavigationManager NavigationManager
+@implements IDisposable
 
-<nav class="navbar navbar-expand-md navbar-gradient py-3 px-3 @(IsHome ? "navbar-transparent text-light" : "navbar-dark")">
+<nav class="navbar navbar-expand-lg navbar-gradient py-3 px-3 @(IsHome ? "navbar-transparent text-light" : "navbar-dark")">
     <div class="container-fluid">
         <a href="/" class="navbar-brand fw-bold fs-4 d-flex align-items-center navbar-brand-responsive" style="color: white;">
             <img src="logo.webp" alt="Logo AS" class="me-2" style="width: 43px; height: 43px; object-fit: contain; filter: drop-shadow(0px 0px 5px rgba(255, 140, 0, 0.5));" />
             Alessandro Saccomanni - PT
         </a>
 
-        <button class="navbar-toggler d-md-none p-0" type="button" aria-label="Apri menu" @onclick="ToggleMenu">
+        <button class="navbar-toggler d-lg-none p-0" type="button" aria-label="Apri menu" @onclick="ToggleMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -47,7 +48,25 @@
 
     private bool IsHome => new Uri(NavigationManager.Uri).AbsolutePath is "/" or "";
 
+    /// <summary>
+    /// Il layout resta montato tra una pagina e l'altra: senza iscrizione a
+    /// LocationChanged la navbar non si ridisegna e mantiene la classe della
+    /// pagina precedente (naviga da /servizi a / e resta nera).
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        menuOpen = false;
+        StateHasChanged();
+    }
+
     private void ToggleMenu() => menuOpen = !menuOpen;
 
     private void CloseMenu() => menuOpen = false;
+
+    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }

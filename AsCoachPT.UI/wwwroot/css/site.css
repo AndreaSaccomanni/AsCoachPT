@@ -1,12 +1,21 @@
-/* Imposta altezza completa per root */
+/* Il documento deve poter scorrere: con height:100% il body diventava
+   un contenitore di scroll interno e window.scrollTo / scrollIntoView
+   non muovevano la pagina. */
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   width: 100%;
+}
+
+/* FocusOnNavigate sposta il focus sull'h1 a ogni navigazione: senza questa
+   regola Chromium disegna il ring di focus attorno al titolo dell'hero. */
+h1:focus,
+h1:focus-visible {
+  outline: none;
 }
 
 h1,
@@ -49,83 +58,105 @@ body {
 
 /* Contenitore della sezione servizi */
 #servizi {
-  background: linear-gradient(180deg, rgb(0 0 0) 0%, rgb(20 23 25) 100%);
-  padding: 50px 0;
-  border-radius: 10px;
-  border: solid 0.2px #522e03;
-  /* margin-bottom: -24px; */
+  background: linear-gradient(180deg, #0a0c0e 0%, #14181b 100%);
+  padding: 3.5rem 0.75rem 3rem;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 140, 0, 0.16);
 }
 
-/* Stile delle card con effetto luce */
+/* In home la sezione ha già il padding verticale di #next-section:
+   il margine del componente creerebbe un doppio spazio in cima. */
+.home-container #next-section #servizi {
+  margin-top: 0 !important;
+}
+
+/* Intestazione di sezione condivisa da home, contatti e chi sono */
+.section-head {
+  max-width: 720px;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+}
+
+.section-eyebrow {
+  margin: 0 0 0.6rem;
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #ffb347;
+}
+
+.section-title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-shadow: none;
+}
+
+.section-sub {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(248, 249, 250, 0.68);
+}
+
+/* Card servizio: superficie piana, bordo sottile, elevazione all'hover */
 .fixedCard {
-  width: 100%; /* occupy full column width */
-  min-height: 420px; /* allow cards to grow if content requires more space */
+  width: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #2e3338 0%, #343a40 100%);
+  overflow: hidden;
+  background: #15181b;
   color: #f8f9fa;
-  border: none;
-  border-radius: 15px;
-  box-shadow: 0px 0px 15px rgba(255, 140, 0, 0.2); /* Neon arancione dietro la card */
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   transition:
-    transform 0.3s,
-    box-shadow 0.3s;
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .fixedCard:hover {
-    box-shadow: 0px 0px 25px rgba(255, 140, 0, 0.6);
-    transform: scale(1.03);
+    transform: translateY(-6px);
+    border-color: rgba(255, 140, 0, 0.55);
+    box-shadow:
+      0 24px 50px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255, 140, 0, 0.2);
   }
 }
 
-/* Immagini con bordi squadrati sotto */
+/* Proporzione fissa per allineare le immagini di tutte le card */
 .fixedCard img {
-  height: 200px;
+  aspect-ratio: 4 / 3;
+  height: auto;
+  width: 100%;
   object-fit: cover;
   background-color: #1c1f22;
-  width: 100%;
-  border-radius: 10px 10px 0 0;
-  transition: opacity 0.3s;
+  border-radius: 0;
+  transition: opacity 0.3s ease;
   flex-shrink: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .fixedCard:hover img {
-    opacity: 0.85;
+    opacity: 0.88;
   }
-}
-
-/* Overlay sulle immagini */
-.fixedCard .overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 200px;
-  background: rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 1;
-}
-
-.fixedCard:hover .overlay {
-  opacity: 0.3;
 }
 
 /* Stili per il contenuto della card */
 .fixedCard .card-body {
-  padding: 1.5rem;
-  position: relative;
-  z-index: 2;
+  padding: 1.4rem 1.4rem 1.5rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  flex: 1 1 auto; /* expand to fill remaining card height */
-  overflow: visible; /* allow content to expand the card instead of scrolling */
+  gap: 0.5rem;
+  flex: 1 1 auto;
 }
 
-/* Ensure column wrappers stretch so cards in the same row match heights */
+/* Le colonne si allungano così le card della stessa riga hanno pari altezza */
 .card-wrapper {
   display: flex;
   flex-direction: column;
@@ -135,19 +166,53 @@ body {
   flex: 1 1 auto;
 }
 
-.fixedCard .card-title,
-.fixedCard .card-text {
-  text-align: center;
-}
-
 .fixedCard .card-title {
-  font-size: 1.25rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  text-align: left;
 }
 
 .fixedCard .card-text {
-  font-size: 1rem;
-  color: #e0e0e0;
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(233, 236, 239, 0.72);
+  text-align: left;
+}
+
+.btn-servizio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin-top: 1.1rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(255, 140, 0, 0.5);
+  border-radius: 999px;
+  background: transparent;
+  color: #ff8c00;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.btn-servizio:hover,
+.btn-servizio:focus-visible {
+  background: #ff8c00;
+  border-color: #ff8c00;
+  color: #101010;
+}
+
+.btn-servizio i {
+  font-size: 0.8rem;
 }
 
 /* Titoli con effetto glow */
@@ -158,25 +223,35 @@ h3 {
   text-shadow: 0px 0px 10px rgba(255, 255, 255, 0.2);
 }
 
-/* Lista dettagli con effetto glow */
+/* Lista dettagli servizio */
 .dettagli-container {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 0px 10px rgba(255, 140, 0, 0.2); /* Neon arancione dietro la descrizione */
+  max-width: 900px;
+  margin: 2rem auto 0;
+  padding: 2rem 2.25rem;
+  background: #101316;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
 }
 
-/* Dettagli: no transition - apparizione/chiusura istantanea */
-.dettagli-container {
-  opacity: 1;
-  transform: none;
+.dettagli-container h3 {
+  margin-bottom: 1.25rem;
+  font-size: 1.35rem;
+  text-shadow: none;
 }
 
 /* testo nella lista dettagli */
+.dettagli-container ul {
+  margin: 0;
+  text-align: left;
+}
+
 .dettagli-container ul li {
-  font-size: 1.1rem;
-  color: #e0e0e0;
-  text-shadow: 0px 0px 5px rgba(255, 140, 0, 0.2);
+  margin-bottom: 0.75rem;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: rgba(233, 236, 239, 0.82);
+  text-shadow: none;
 }
 
 .btn-primary {
@@ -191,20 +266,6 @@ h3 {
 .btn-primary:hover {
   box-shadow: 0px 0px 15px rgba(255, 140, 0, 0.8);
   transform: scale(1.05);
-}
-
-.link-arancione {
-  color: #ff8c00 !important;
-  text-decoration: none;
-  font-weight: bold;
-  transition:
-    color 0.3s ease,
-    text-shadow 0.3s ease;
-}
-
-.link-arancione:hover {
-  color: #ffa500 !important;
-  text-shadow: 0px 0px 10px rgba(255, 140, 0, 0.5);
 }
 
 .link-rosso {
@@ -251,8 +312,10 @@ h3 {
 }
 
 /* --------------- HOME --------------*/
+/* Sfondo della home: un'unica rampa continua dal nero dell'hero fino al footer,
+   senza salti di colore tra la sezione "Chi sono" e il form finale. */
 .home-container {
-  background: linear-gradient(180deg, #121212 0%, #2e3338 100%);
+  background: linear-gradient(180deg, #080a0c 0%, #0b0e11 35%, #101418 68%, #0a0c0e 100%);
 }
 
 /* Stesso stile dei bottoni della pagina Servizi con il nuovo arancione */
@@ -298,32 +361,141 @@ h3 {
   padding-right: 0px !important ;
 }
 
+/* Velo scuro: più leggero in alto, così l'immagine dell'hero resta visibile
+   dietro la navbar trasparente; si infittisce verso il centro per la leggibilità
+   di titolo e paragrafo. */
 .hero-section::before {
   content: "";
   position: absolute;
   inset: 0;
-
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.38) 12%,
+    rgba(0, 0, 0, 0.65) 45%,
+    rgba(0, 0, 0, 0.72) 75%,
+    rgba(0, 0, 0, 0.86) 100%
+  );
   z-index: 1;
 }
 
 .hero-content {
   position: relative;
   z-index: 2;
-  max-width: 800px;
-  padding: 1rem;
+  max-width: 780px;
+  padding: 5rem 1.25rem 4.5rem;
+}
+
+.hero-eyebrow {
+  margin: 0 0 1rem;
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #ffb347;
+}
+
+.hero-title {
+  margin: 0 0 1.1rem;
+  font-size: clamp(2.2rem, 5.2vw, 4rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+}
+
+.hero-accent {
+  color: #ff8c00;
+}
+
+.hero-greeting {
+  color: #f5d5ae;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.1;
+  margin: 0 0 0.75rem;
+}
+
+.hero-lead {
+  margin: 0 auto 2.25rem;
+  max-width: 620px;
+  font-size: clamp(1rem, 1.4vw, 1.15rem);
+  line-height: 1.7;
+  color: rgba(248, 249, 250, 0.84);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.hero-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.85rem 1.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+}
+
+.btn-outline-hero {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.btn-outline-hero:hover,
+.btn-outline-hero:focus {
+  border-color: #ff8c00;
+  color: #ff8c00;
+  background: rgba(255, 140, 0, 0.08);
+}
+
+.hero-scroll {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1rem;
+  animation: heroScrollCue 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes heroScrollCue {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform: translate(-50%, 6px);
+    opacity: 0.95;
+  }
 }
 
 /*------------- CHI SONO ------------*/
 .chi-sono-container {
-  max-width: 2000px;
-  background: linear-gradient(180deg, #121212 0%, #25282c 100%);
+  max-width: 1200px;
+  padding: 2rem 1rem;
+  background: transparent;
   color: #f8f9fa;
-  border-radius: 10px;
 }
 
 /* ANIMAZIONE TITOLO CHI SONO*/
 .chiSono {
-  font-size: 5rem;
+  font-size: clamp(2.2rem, 4.4vw, 3.2rem);
+  text-align: left;
+  text-shadow: none;
   opacity: 1;
   transform: none;
   animation: slideIn 1.2s ease-out both;
@@ -394,15 +566,180 @@ h3 {
   transform: translateY(0);
 }
 .presentazione {
-  letter-spacing: 1.5px;
+  margin-bottom: 1.1rem;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: rgba(248, 249, 250, 0.82);
+  text-align: left;
+}
+
+.presentazione strong {
+  color: #ffffff;
+}
+
+.presentazione-seconda {
+  color: rgba(248, 249, 250, 0.68);
 }
 
 /* Stile dell'immagine profilo */
 .foto-profilo {
   width: 100%;
-  max-width: 333px;
-  border-radius: 10px;
-  box-shadow: 0px 0px 15px rgba(255, 140, 0, 0.3);
+  height: auto;
+  max-width: 420px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Ruoli sintetici sotto la biografia */
+.chi-sono-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+}
+
+.chi-sono-tags li {
+  margin: 0;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: #ffb347;
+  text-shadow: none;
+}
+
+/* Pannelli percorso di studi / esperienze */
+.info-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  text-align: left;
+}
+
+.info-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: left;
+  text-shadow: none;
+  color: #ffffff;
+}
+
+.info-panel-title i {
+  color: #ff8c00;
+  font-size: 0.95rem;
+}
+
+/* Percorso di studi: linea verticale con tappe */
+.timeline {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.1rem;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0 0 0 0.25rem;
+  list-style: none;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  left: 0.45rem;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(255, 140, 0, 0.55), rgba(255, 140, 0, 0.05));
+}
+
+.timeline li {
+  position: relative;
+  padding-left: 1.6rem;
+}
+
+.timeline li:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  top: 0.35rem;
+  left: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #ff8c00;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.16);
+}
+
+.timeline-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #f8f9fa;
+}
+
+.timeline-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(248, 249, 250, 0.62);
+}
+
+/* Esperienze: elenco di schede compatte */
+.exp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.exp-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.8rem 0.95rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  text-shadow: none;
+}
+
+.exp-list li > i {
+  margin-top: 0.2rem;
+  color: #ff8c00;
+  font-size: 0.9rem;
+}
+
+.exp-title {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #f8f9fa;
+}
+
+.exp-meta {
+  display: block;
+  font-size: 0.82rem;
+  color: rgba(248, 249, 250, 0.6);
 }
 
 /* Stile dei titoli */
@@ -433,12 +770,13 @@ ul li {
 }
 @media (max-width: 768px) {
   .chiSono {
-    color: #ff8c00 !important;
-    font-size: clamp(2.4rem, 8vw, 3.8rem);
-    margin-bottom: 0px !important;
+    font-size: clamp(1.9rem, 7vw, 2.4rem);
   }
+
+  /* Il testo lungo resta allineato a sinistra anche su telefono:
+     centrato diventa faticoso da seguire. */
   .presentazione {
-    text-align: center;
+    text-align: left;
   }
 }
 
@@ -469,9 +807,40 @@ ul li {
   box-shadow: none !important;
 }
 
+/* Navbar sopra la foto: testo leggibile senza aggiungere un fondo nero. */
+.navbar-transparent .nav-link,
+.navbar-transparent .navbar-brand {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+}
+
 /* Forza l'icona del toggler della navbar in bianco (override Bootstrap) */
 .navbar .navbar-toggler-icon {
   background-image: url("data:image/svg+xml;charset=UTF8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255,255,255,1)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E") !important;
+}
+
+/* Navbar desktop: brand più compatto e voci distanziate, i link di accesso
+   non devono toccare il bordo destro. */
+@media (min-width: 992px) {
+  .navbar.navbar-expand-lg {
+    padding-right: 1.75rem;
+  }
+
+  .navbar .navbar-brand {
+    margin-right: 2rem;
+    font-size: 1.15rem !important;
+  }
+
+  .navbar .navbar-nav {
+    gap: 0.25rem;
+  }
+
+  .navbar .navbar-collapse .nav-link {
+    padding-inline: 0.85rem !important;
+  }
+
+  .navbar .navbar-collapse .navbar-nav.me-auto {
+    padding-left: 0.5rem;
+  }
 }
 
 /* Assicuriamoci che il bottone toggler abbia testo/icone bianchi */
@@ -523,16 +892,31 @@ ul li {
   color: white !important;
 }
 
+@media (max-width: 991.98px) {
+  /* Brand e hamburger sulla stessa riga: il brand deve poter restringersi,
+     altrimenti spinge il toggler a capo (prima compensato con margin-left: 40%).
+     Il wrap resta attivo perché il menu aperto deve andare a capo sotto la barra. */
+  .navbar > .container-fluid {
+    column-gap: 0.5rem;
+  }
+
+  .navbar-brand {
+    min-width: 0;
+  }
+
+  .navbar-toggler {
+    margin-left: auto;
+    flex: 0 0 auto;
+    color: white !important;
+  }
+}
+
 @media (max-width: 477px) {
   .navbar-brand {
     font-size: 1.2rem !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .navbar-toggler {
-    margin-left: 40%;
-    color: white !important;
   }
 }
 
@@ -592,49 +976,103 @@ ul li {
 /*------------------ FOOTER -------------*/
 
 .footer-gradient {
-  background: linear-gradient(180deg, #2e3338 0%, #121212 100%);
+  background: #0a0c0e;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 3rem 0 1.5rem;
+}
+
+/* In home il footer continua la rampa di .home-container: nessuna linea di stacco. */
+.footer-home {
+  border-top: 0;
 }
 
 /* Sfondo del footer nella pagina Servizi */
 .footer-servizi {
-  background: linear-gradient(180deg, #050505 0%, #121212 100%);
+  background: #0a0c0e;
 }
 
 .footer-title {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #ff8c00;
+  margin-bottom: 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffb347;
+}
+
+.footer-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .footer-link {
-  color: #f8f9fa;
+  color: rgba(248, 249, 250, 0.78);
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color 0.25s ease;
 }
 
 .footer-link:hover {
   color: #ff8c00;
 }
 
+.footer-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-links li {
+  margin-bottom: 0.55rem;
+  font-size: 0.92rem;
+  text-shadow: none;
+}
+
+.footer-socials {
+  display: flex;
+  gap: 0.9rem;
+}
+
+@media (max-width: 767.98px) {
+  .footer-socials,
+  .footer-row {
+    justify-content: center;
+  }
+}
+
 .footer-divider {
-  border-top: 1px solid rgba(233, 142, 5, 0.5);
-  margin-top: -16px;
+  margin: 2rem 0 1rem;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  opacity: 1;
+}
+
+.footer-copy {
+  font-size: 0.8rem;
+  color: rgba(248, 249, 250, 0.5);
 }
 
 .footer-social {
   color: #ff8c00;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   transition:
-    transform 0.3s ease,
-    text-shadow 0.3s ease;
+    transform 0.25s ease,
+    color 0.25s ease;
 }
 
 .footer-social:hover {
-  transform: scale(1.1);
-  text-shadow: 0px 0px 10px rgba(255, 140, 0, 0.8);
+  transform: translateY(-2px);
+  color: #ffb347;
 }
+
 .contact-icon {
-  min-width: 25px;
+  min-width: 1.1rem;
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  color: #ffb347;
   text-align: center;
 }
 
@@ -670,17 +1108,43 @@ ul li {
   transform: scale(1.3);
 }
 
-/*------------------- FORM CONTATTAMI ---------------*/
-.container-form {
-  max-width: 500px;
-  /* Nessuna altezza massima: il pulsante Invia non deve finire sotto il footer. */
-  max-height: none;
-}
-
-/* ---- VIDEO DI SFONDO -------*/
+/* ---- SEZIONE CONTATTI -------*/
+/* Nessun colore di fondo proprio: il bagliore arancione si fonde con la rampa
+   di .home-container, così il passaggio dalla sezione precedente è graduale. */
 .sezione-video-bg {
   position: relative;
   overflow: hidden;
+  padding: 4.5rem 0 5.5rem;
+  background: radial-gradient(ellipse 75% 65% at 50% 45%, rgba(255, 140, 0, 0.09), transparent 72%);
+}
+
+.contenuto-form {
+  position: relative;
+  z-index: 2;
+  padding: 0 1rem;
+}
+
+.form-card {
+  padding: 2rem;
+  background: #15181b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.btn-contatti {
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+}
+
+.form-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.78rem;
+  text-align: left;
+  color: rgba(248, 249, 250, 0.55);
 }
 
 .video-background {
@@ -787,32 +1251,44 @@ ul li {
 /* --------- ICONA WHATSAPP --------*/
 .whatsapp {
   position: fixed;
+  right: 20px;
+  bottom: 20px;
   z-index: 1000;
-  bottom: 5%;
-  right: 15px;
+  display: inline-flex;
   border-radius: 50%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
-.whatsapp:hover {
-  cursor: pointer;
-  transform: scale(1.5);
-  transition: transform 0.07s ease;
-  box-shadow: 0px 0px 15px rgba(2, 249, 64, 0.851);
+
+.whatsapp img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.whatsapp:hover,
+.whatsapp:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(2, 249, 64, 0.35);
 }
 
 @media (max-width: 576px) {
   .whatsapp {
-    position: fixed;
-    z-index: 1000;
-    bottom: 5%;
-    right: 12px;
-    border-radius: 50%;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .whatsapp img {
+    width: 48px;
+    height: 48px;
   }
 }
 
 @media (max-width: 375px) {
   .whatsapp {
-    bottom: 5%;
-    right: 10px;
+    right: 12px;
   }
 }
 
@@ -856,7 +1332,7 @@ ul li {
   }
 
   .home-container .hero-content {
-    padding: 1rem;
+    padding: 2.5rem 1.25rem 3rem;
   }
 
   /* Le sezioni non sono più a tutta altezza: crescono con il contenuto. */
@@ -898,7 +1374,8 @@ ul li {
   }
 
   .home-container .fixedCard img {
-    height: 170px;
+    aspect-ratio: 4 / 3;
+    height: auto;
   }
 
   .home-container .fixedCard .card-body {
@@ -925,60 +1402,177 @@ ul li {
 
   .home-container .sezione-video-bg {
     position: relative;
-    padding-bottom: 1rem;
+    padding: 2.5rem 0 3rem;
     overflow: hidden;
   }
 
   .home-container .contenuto-form {
-    padding: 1rem 0.5rem 2rem 0.5rem;
+    padding: 0 0.25rem;
   }
 
   .home-container .whatsapp {
     position: fixed;
   }
 
-  .home-container h1,
   .home-container h2,
   .home-container h3 {
     font-size: clamp(1.35rem, 6vw, 2.2rem);
     line-height: 1.2;
   }
 
-  .home-container .display-4 {
-    font-size: clamp(2rem, 9vw, 3rem);
+  .home-container .hero-title {
+    font-size: clamp(2rem, 8.5vw, 2.8rem);
+  }
+
+  .home-container .chiSono {
+    text-align: center;
   }
 
   .home-container .display-3 {
     font-size: clamp(1.9rem, 8vw, 2.8rem);
   }
 
-  .home-container .lead {
+  .home-container .lead,
+  .home-container .hero-lead {
     font-size: 1rem;
   }
 }
 
-/* Modale servizi: sempre scrollabile su schermi bassi. */
-.modal-servizi .modal-dialog {
-  margin: 1rem auto;
-  max-height: calc(100svh - 2rem);
+/* --------- DIALOGO DETTAGLI SERVIZIO --------- */
+.modal-servizio {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(4, 5, 6, 0.72);
+  backdrop-filter: blur(4px);
+  animation: modalServizioFade 160ms ease-out both;
 }
 
-.modal-servizi .modal-content {
-  max-height: 100%;
+.modal-servizio-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 100%);
+  max-height: min(80vh, 720px);
+  background: #101316;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  outline: none;
+  animation: modalServizioIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.modal-servizi .modal-body {
+.modal-servizio-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.modal-servizio-head h5 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  text-align: left;
+  text-shadow: none;
+}
+
+.modal-servizio-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  background: transparent;
+  color: #f8f9fa;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.modal-servizio-close:hover,
+.modal-servizio-close:focus-visible {
+  border-color: #ff8c00;
+  color: #ff8c00;
+}
+
+.modal-servizio-body {
+  padding: 1.25rem 1.5rem 1.5rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-/* Ancore con offset per la navbar fissa. */
-#next-section,
-#servizi {
-  scroll-margin-top: 70px;
+.modal-servizio-body li {
+  margin-bottom: 0.9rem;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: rgba(233, 236, 239, 0.82);
 }
 
-/* Menu mobile: pannello scuro leggibile sopra le immagini dell'hero. */
+.modal-servizio-body li:last-child {
+  margin-bottom: 0;
+}
+
+.modal-servizio-body strong {
+  color: #ffffff;
+}
+
+@keyframes modalServizioFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalServizioIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Su telefono il dialogo arriva dal basso: più facile da raggiungere col pollice. */
 @media (max-width: 767.98px) {
+  .modal-servizio {
+    align-items: flex-end;
+    padding: 0.75rem;
+  }
+
+  .modal-servizio-panel {
+    width: 100%;
+    max-height: 86vh;
+    border-radius: 20px;
+  }
+
+  .modal-servizio-head {
+    padding: 1.25rem 1.15rem 0.9rem;
+  }
+
+  .modal-servizio-body {
+    padding: 1rem 1.15rem 1.35rem;
+  }
+}
+
+/* L'offset delle ancore è calcolato in site.js (asCoachScrollTo) in base alla
+   posizione reale della navbar: qui non serve più un valore fisso. */
+
+/* Menu collassato: pannello scuro leggibile sopra le immagini dell'hero. */
+@media (max-width: 991.98px) {
   .navbar-collapse.show {
     background: rgba(10, 10, 10, 0.95);
     border-radius: 12px;

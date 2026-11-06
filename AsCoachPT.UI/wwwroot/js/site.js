@@ -59,11 +59,48 @@
     document.addEventListener("blazor:enhancedload", initReveal);
 })();
 
-// Scroll fluido verso una sezione, usato dall'hero senza ricorrere a eval.
+// Scroll fluido verso una sezione. Usa un offset solo se la navbar è
+// effettivamente sovrapposta al contenuto (fixed/sticky): in home è assoluta
+// sull'hero e scorre via, quindi l'offset deve essere 0 per non tagliare
+// la parte bassa della sezione di destinazione.
 window.asCoachScrollTo = function (id) {
     const sezione = document.getElementById(id);
-    if (sezione) {
-        sezione.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!sezione) return;
+
+    const navbar = document.querySelector(".navbar");
+    let offset = 0;
+    if (navbar) {
+        const posizione = window.getComputedStyle(navbar).position;
+        if (posizione === "fixed" || posizione === "sticky") {
+            offset = navbar.getBoundingClientRect().height;
+        }
+    }
+
+    const top = sezione.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+};
+
+// Dialoghi della sezione servizi: blocca lo scroll della pagina mentre sono aperti
+// e alla chiusura riporta il focus sull'elemento che li ha aperti.
+window.asCoachModal = function (apri) {
+    const radice = document.documentElement;
+
+    if (apri) {
+        window.__asCoachFuocoPrecedente = document.activeElement;
+        radice.style.overflow = "hidden";
+        return;
+    }
+
+    radice.style.overflow = "";
+
+    const precedente = window.__asCoachFuocoPrecedente;
+    window.__asCoachFuocoPrecedente = null;
+    if (precedente && typeof precedente.focus === "function") {
+        try {
+            precedente.focus({ preventScroll: true });
+        } catch {
+            precedente.focus();
+        }
     }
 };
 
