@@ -174,6 +174,28 @@ app.MapPost("/auth/register", async (HttpContext http, UtenteService utenti, IFo
     return Results.Redirect("/login?registered=1");
 }).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
 
+app.MapGet("/internal/diag", (HttpContext http) =>
+{
+    var token = Environment.GetEnvironmentVariable("IMPORT_TOKEN");
+    if (string.IsNullOrWhiteSpace(token) || http.Request.Headers["X-Import-Token"] != token)
+    {
+        return Results.NotFound();
+    }
+
+    var root = AppContext.BaseDirectory;
+    var framework = Path.Combine(root, "wwwroot", "_framework");
+    var manifest = Path.Combine(root, "AsCoachPT.staticwebassets.endpoints.json");
+    return Results.Json(new
+    {
+        baseDirectory = root,
+        frameworkExists = Directory.Exists(framework),
+        frameworkFiles = Directory.Exists(framework) ? Directory.GetFiles(framework).Length : 0,
+        blazorWebExists = File.Exists(Path.Combine(framework, "blazor.web.js")),
+        manifestExists = File.Exists(manifest),
+        manifestHasBlazor = File.Exists(manifest) && File.ReadAllText(manifest).Contains("blazor.web.js")
+    });
+}).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
+
 app.MapPost("/auth/logout", async (HttpContext http) =>
 {
     await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
