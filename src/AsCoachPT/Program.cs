@@ -174,6 +174,8 @@ app.MapPost("/auth/register", async (HttpContext http, UtenteService utenti, IFo
     return Results.Redirect("/login?registered=1");
 }).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
 
+app.MapPost("/internal/import", TemporaryImport.HandleAsync).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
+
 app.MapPost("/auth/logout", async (HttpContext http) =>
 {
     await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
