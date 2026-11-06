@@ -4,8 +4,8 @@ WORKDIR /src
 # Il restore avviene dopo la copia completa: con il solo .csproj gli static web
 # assets di Blazor (_framework/blazor.web.js) non vengono generati.
 COPY . ./
-RUN dotnet restore src/AsCoachPT.UI/AsCoachPT.UI.csproj
-RUN dotnet publish src/AsCoachPT.UI/AsCoachPT.UI.csproj -c Release -o /app --no-restore
+RUN dotnet restore AsCoachPT.UI/AsCoachPT.UI.csproj
+RUN dotnet publish AsCoachPT.UI/AsCoachPT.UI.csproj -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

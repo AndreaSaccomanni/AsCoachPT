@@ -18,5 +18,6 @@
 </header>
 
 @code {
-    private Task Scorri() => JS.InvokeVoidAsync("eval", "document.getElementById('next-section')?.scrollIntoView({behavior:'smooth'})").AsTask();
+    /// <summary>Scorre alla sezione successiva della home (servizi) senza usare eval.</summary>
+    private Task Scorri() => JS.InvokeVoidAsync("asCoachScrollTo", "next-section").AsTask();
 }

@@ -1,12 +1,31 @@
 // Animazioni e cursore personalizzato, pari comportamento dell'app React.
 (function () {
     function initCursor() {
-        const follower = document.getElementById("cursorFollower");
-        if (!follower) return;
+        if (!document.getElementById("cursorFollower")) return;
+
+        let inCoda = false;
+        let ultimoX = 0;
+        let ultimoY = 0;
+
+        // Aggiorna una sola volta per frame con transform (composito su GPU):
+        // evita layout ripetuti e rende il cursore fluido. L'elemento viene
+        // ricercato a ogni frame perché Blazor può sostituire il nodo dopo l'hydration.
+        function aggiorna() {
+            const follower = document.getElementById("cursorFollower");
+            if (follower) {
+                follower.style.transform = "translate3d(" + ultimoX + "px," + ultimoY + "px,0) translate(-50%, -50%)";
+            }
+            inCoda = false;
+        }
+
         window.addEventListener("mousemove", (e) => {
-            follower.style.left = e.clientX + "px";
-            follower.style.top = e.clientY + "px";
-        });
+            ultimoX = e.clientX;
+            ultimoY = e.clientY;
+            if (!inCoda) {
+                inCoda = true;
+                requestAnimationFrame(aggiorna);
+            }
+        }, { passive: true });
     }
 
     function initReveal() {
@@ -39,6 +58,19 @@
     // Blazor sostituisce il DOM dopo l'interattività: ripeti l'osservazione.
     document.addEventListener("blazor:enhancedload", initReveal);
 })();
+
+// Scroll fluido verso una sezione, usato dall'hero senza ricorrere a eval.
+window.asCoachScrollTo = function (id) {
+    const sezione = document.getElementById(id);
+    if (sezione) {
+        sezione.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+};
+
+// Usato dai componenti Blazor per distinguere telefono e desktop senza ricorrere a eval.
+window.asCoachIsMobile = function () {
+    return window.matchMedia("(max-width: 767.98px)").matches;
+};
 
 // Ricerca luogo tramite Google Places + Geocoder (parità con GestioneIndirizzi React).
 window.asCoachSearchPlace = function (query) {

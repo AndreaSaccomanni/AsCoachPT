@@ -1,19 +1,35 @@
 @inject IJSRuntime JS
 
+@*
+    Sezione servizi della home.
+    I contenuti sono editoriali (non provengono dal database): sono definiti in SchedeServizi.
+    Su desktop i dettagli si aprono sotto le card, su mobile in una finestra modale.
+*@
 <div class="container-fluid pt-4 mt-5 px-4" id="servizi">
     <h2 class="text-center my-2 fs-1 fw-bold">I miei servizi</h2>
 
     <div class="row justify-content-center">
-        @foreach (var servizio in Servizi)
+        @foreach (var servizio in SchedeServizi)
         {
-            <div class="col-lg-3 col-md-6 col-12 mt-4 mt-md-4 mb-md-4 d-flex card-wrapper" data-reveal>
+            <div class="col-lg-3 col-md-6 col-12 mt-4 mt-md-4 mb-md-4 d-flex card-wrapper">
                 <div class="card fixedCard flex-grow-1">
-                    <img class="card-img-top" src="@servizio.Immagine" alt="@servizio.Titolo" />
+                    <img class="card-img-top"
+                         src="@servizio.ImmagineSrc"
+                         srcset="@servizio.ImmagineSrcset"
+                         sizes="(max-width: 767.98px) 88vw, (max-width: 991.98px) 45vw, 300px"
+                         width="@servizio.ImmagineLarghezza"
+                         height="@servizio.ImmagineAltezza"
+                         alt="@servizio.Titolo"
+                         loading="lazy"
+                         decoding="async" />
                     <div class="overlay"></div>
                     <div class="card-body">
                         <h5 class="card-title text-center">@servizio.Titolo</h5>
                         <p class="card-text text-center">@servizio.Descrizione</p>
-                        <button class="btn btn-link d-block mx-auto mt-2 text-decoration-none link-arancione"
+                        <button type="button"
+                                class="btn btn-link d-block mx-auto mt-2 text-decoration-none link-arancione"
+                                aria-expanded="@(aperto?.Id == servizio.Id)"
+                                aria-controls="dettagli-servizio-@servizio.Id"
                                 @onclick="() => Apri(servizio)">
                             @(aperto?.Id == servizio.Id ? "Nascondi dettagli" : "Scopri di più")
                         </button>
@@ -29,7 +45,7 @@
             <div class="col">
                 @if (aperto is not null)
                 {
-                    <div class="dettagli-container">
+                    <div class="dettagli-container" id="dettagli-servizio-@aperto.Id">
                         <h3 class="text-center mt-4">@aperto.Titolo</h3>
                         <ul class="text-muted text-center list-unstyled">
                             @foreach (var dettaglio in aperto.Dettagli)
@@ -45,12 +61,14 @@
 
     @if (mobile && modaleAperta && aperto is not null)
     {
-        <div class="modal d-block" style="background: rgba(0,0,0,.6);" @onclick="ChiudiModale">
-            <div class="modal-dialog modal-dialog-centered" @onclick:stopPropagation="true">
+        <div class="modal d-block modal-servizi" style="background: rgba(0,0,0,.6);"
+             role="dialog" aria-modal="true" aria-labelledby="titolo-modale-servizio"
+             tabindex="-1" @onclick="ChiudiModale" @onkeydown="OnKeyDown">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" @onclick:stopPropagation="true">
                 <div class="modal-content" style="background-color: #1a1a1a; color: white;">
                     <div class="modal-header border-0">
-                        <h5 class="modal-title w-100 text-center">@aperto.Titolo</h5>
-                        <button type="button" class="btn-close btn-close-white" @onclick="ChiudiModale"></button>
+                        <h5 class="modal-title w-100 text-center" id="titolo-modale-servizio">@aperto.Titolo</h5>
+                        <button type="button" class="btn-close btn-close-white" aria-label="Chiudi" @onclick="ChiudiModale"></button>
                     </div>
                     <div class="modal-body">
                         <ul class="list-unstyled">
@@ -71,7 +89,11 @@
     private bool modaleAperta;
     private ServizioCard? aperto;
 
-    private static readonly List<ServizioCard> Servizi = new()
+    /// <summary>
+    /// Contenuti editoriali delle card servizi. Restano nel componente perché sono testi
+    /// di marketing legati alla home e non dati gestiti dal database.
+    /// </summary>
+    private static readonly List<ServizioCard> SchedeServizi = new()
     {
         new(1, "Piano di Allenamento Personalizzato", "Pianificazione di un ciclo di allenamenti o aggiornamento della scheda precedente.",
             new[]
@@ -81,14 +103,18 @@
                 "**Supporto continuo**: Comunicazione costante ed eventuale follow-up per aggiustamenti durante il percorso.",
                 "**Check up finale**: Valutazione alla fine del percorso ed eventuale pianificazione del proseguimento."
             },
-            "assets/images/consulenza.jpg"),
+            "assets/images/consulenza-800.webp",
+            "assets/images/consulenza-400.webp 400w, assets/images/consulenza-800.webp 800w",
+            800, 600),
         new(2, "Massaggi", "Massaggio rilassante per alleviare lo stress.",
             new[]
             {
                 "**Massaggio rilassante**: Prenditi cura di te e goditi un massaggio completo per ridurre lo stress e le tensioni emotive. 30 min | 1h",
                 "**Massaggio sportivo**: Tecniche manuali per favorire il recupero post esercizio o sciogliere contratture muscolari. 30 min | 1h"
             },
-            "assets/images/rilassante.jpg"),
+            "assets/images/rilassante-800.webp",
+            "assets/images/rilassante-400.webp 400w, assets/images/rilassante-800.webp 800w",
+            800, 600),
         new(3, "Personal Training", "Allenamento 1 a 1",
             new[]
             {
@@ -97,7 +123,9 @@
                 "**Allenamento per bambini 8+**:",
                 "**Allenamento cognitivo per anziani**: "
             },
-            "assets/images/decontratturante.jpg"),
+            "assets/images/decontratturante-800.webp",
+            "assets/images/decontratturante-400.webp 400w, assets/images/decontratturante-800.webp 800w",
+            800, 600),
         new(4, "Trattamento infortuni", "Percorso personalizzato per il recupero da infortuni, mirato a ripristinare mobilità, forza e funzionalità in sicurezza.",
             new[]
             {
@@ -106,18 +134,39 @@
                 "**Applicazione tape kinesiologico**: Favorisce il drenaggio linfatico e riduce il gonfiore a seguito di traumi o infiammazioni.",
                 "**Adatto a varie esigenze**: Utile in ambito sportivo, posturale o riabilitativo, per adulti e bambini."
             },
-            "assets/images/taping.avif")
+            "assets/images/taping-500.webp",
+            "assets/images/taping-300.webp 300w, assets/images/taping-500.webp 500w",
+            500, 304)
     };
 
+    /// <summary>
+    /// Determina una sola volta se il layout è mobile, per scegliere tra dettagli inline
+    /// (desktop) e finestra modale (telefono). La larghezza è letta via JS, senza eval.
+    /// </summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender)
         {
-            mobile = await JS.InvokeAsync<bool>("eval", "window.innerWidth < 768");
-            StateHasChanged();
+            return;
         }
+
+        try
+        {
+            mobile = await JS.InvokeAsync<bool>("asCoachIsMobile");
+        }
+        catch (JSException)
+        {
+            // Se il JS non è disponibile (es. prerender) resta il layout desktop, che è sempre leggibile.
+            mobile = false;
+        }
+
+        StateHasChanged();
     }
 
+    /// <summary>
+    /// Apre o chiude i dettagli del servizio: modale su mobile, pannello inline su desktop.
+    /// Un secondo clic sullo stesso servizio chiude il pannello.
+    /// </summary>
     private void Apri(ServizioCard servizio)
     {
         if (mobile)
@@ -130,17 +179,44 @@
         aperto = aperto?.Id == servizio.Id ? null : servizio;
     }
 
+    /// <summary>Chiude la modale mobile e azzera il servizio selezionato.</summary>
     private void ChiudiModale()
     {
         modaleAperta = false;
         aperto = null;
     }
 
+    /// <summary>Gestisce il tasto Escape per chiudere la modale come una finestra nativa.</summary>
+    private void OnKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+        {
+            ChiudiModale();
+        }
+    }
+
+    /// <summary>
+    /// Converte la sintassi **testo** in grassetto. Il testo viene prima codificato in HTML,
+    /// così non è possibile iniettare markup: solo il grassetto aggiunto qui viene interpretato.
+    /// </summary>
     private static string Grassetto(string testo) =>
         System.Text.RegularExpressions.Regex.Replace(
             System.Net.WebUtility.HtmlEncode(testo),
             "\\*\\*(.*?)\\*\\*",
             "<strong>$1</strong>");
 
-    public record ServizioCard(int Id, string Titolo, string Descrizione, string[] Dettagli, string Immagine);
+    /// <summary>Modello di una card servizio della home.</summary>
+    /// <summary>
+    /// Card servizio con immagine ottimizzata: src principale, srcset per le diverse densità
+    /// e dimensioni intrinseche, così il browser riserva lo spazio ed evita layout shift.
+    /// </summary>
+    public record ServizioCard(
+        int Id,
+        string Titolo,
+        string Descrizione,
+        string[] Dettagli,
+        string ImmagineSrc,
+        string ImmagineSrcset,
+        int ImmagineLarghezza,
+        int ImmagineAltezza);
 }

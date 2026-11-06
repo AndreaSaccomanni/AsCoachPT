@@ -29,7 +29,7 @@ interfacce di Application e viene registrata con `AddInfrastructure(configuratio
 Da CLI:
 
 ```bash
-dotnet run --project src/AsCoachPT.UI
+dotnet run --project AsCoachPT.UI
 ```
 
 In sviluppo la connessione arriva dai **User Secrets** del progetto UI
@@ -40,7 +40,7 @@ Esempio per collegare il clone PostgreSQL locale:
 ```bash
 dotnet user-secrets set "ConnectionStrings:Default" \
   "Host=localhost;Port=5432;Database=ascoachpt;Username=postgres;Password=***" \
-  --project src/AsCoachPT.UI
+  --project AsCoachPT.UI
 ```
 
 ## Database

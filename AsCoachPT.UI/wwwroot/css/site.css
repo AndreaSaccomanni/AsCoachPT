@@ -72,23 +72,28 @@ body {
     box-shadow 0.3s;
 }
 
-.fixedCard:hover {
-  box-shadow: 0px 0px 25px rgba(255, 140, 0, 0.6); /* Effetto neon arancione più forte al passaggio */
-  transform: /*translateY(-10px)*/ scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .fixedCard:hover {
+    box-shadow: 0px 0px 25px rgba(255, 140, 0, 0.6);
+    transform: scale(1.03);
+  }
 }
 
 /* Immagini con bordi squadrati sotto */
 .fixedCard img {
   height: 200px;
   object-fit: cover;
+  background-color: #1c1f22;
   width: 100%;
   border-radius: 10px 10px 0 0;
   transition: opacity 0.3s;
   flex-shrink: 0;
 }
 
-.fixedCard:hover img {
-  opacity: 0.8;
+@media (hover: hover) and (pointer: fine) {
+  .fixedCard:hover img {
+    opacity: 0.85;
+  }
 }
 
 /* Overlay sulle immagini */
@@ -216,25 +221,33 @@ h3 {
   text-shadow: 0px 0px 10px rgba(255, 140, 0, 0.5);
 }
 
-/*EFFETTI SULLE CARD*/
+/* EFFETTI SULLE CARD
+   Le card sono visibili di default: l'animazione è solo un miglioramento progressivo.
+   In questo modo restano leggibili anche se il JS non parte o Blazor ricrea il DOM. */
 .card-wrapper {
-  opacity: 0;
-  transition:
-    transform 1s ease,
-    opacity 1.5s ease;
+  opacity: 1;
+  animation: cardRivela 0.7s ease-out both;
 }
 
-.from-left {
-  transform: translateX(-100px);
+@keyframes cardRivela {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
+.from-left,
 .from-right {
-  transform: translateX(100px);
+  transform: none;
 }
 
 .card-wrapper.show {
   opacity: 1;
-  transform: translateX(0);
+  transform: none;
 }
 
 /* --------------- HOME --------------*/
@@ -274,7 +287,9 @@ h3 {
 .hero-section {
   height: 100vh; /* tutta l'altezza dello schermo */
   width: 100%;
+  background-color: #121212;
   background-image: url("/assets/images/sfondoHome.jpg");
+  background-image: image-set(url("/assets/images/sfondoHome-1920.webp") type("image/webp"));
   background-size: cover;
   background-position: center;
   position: relative;
@@ -309,9 +324,9 @@ h3 {
 /* ANIMAZIONE TITOLO CHI SONO*/
 .chiSono {
   font-size: 5rem;
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 1s ease-out;
+  opacity: 1;
+  transform: none;
+  animation: slideIn 1.2s ease-out both;
 }
 
 .chiSono.visible {
@@ -336,11 +351,20 @@ h3 {
 }
 /* ANIMAZIONE IMMAGINE PROFILO*/
 .fade-image {
-  opacity: 0;
-  transform: scale(0.95);
-  transition:
-    opacity 1.2s ease-out,
-    transform 1.2s ease-out;
+  opacity: 1;
+  transform: none;
+  animation: fadeImage 0.8s ease-out both;
+}
+
+@keyframes fadeImage {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .fade-image.visible {
@@ -349,9 +373,20 @@ h3 {
 }
 
 .chi-sono-container .fade-slide {
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: all 0.4s ease;
+  opacity: 1;
+  transform: none;
+  animation: fadeSlide 0.5s ease-out both;
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .chi-sono-container .fade-slide.show {
@@ -388,17 +423,18 @@ ul li {
   text-shadow: 0px 0px 5px rgba(255, 140, 0, 0.3);
 }
 
-/* Per schermi piccoli: la foto va sopra il testo */
+/* Per schermi piccoli: la foto va sopra il testo, centrata e a dimensione leggibile. */
 @media (max-width: 768px) {
   .foto-profilo {
-    margin-bottom: 20px;
-    display: none;
+    display: block;
+    margin: 0 auto 20px auto;
+    max-width: 240px;
   }
 }
 @media (max-width: 768px) {
   .chiSono {
     color: #ff8c00 !important;
-    font-size: 6rem;
+    font-size: clamp(2.4rem, 8vw, 3.8rem);
     margin-bottom: 0px !important;
   }
   .presentazione {
@@ -637,8 +673,8 @@ ul li {
 /*------------------- FORM CONTATTAMI ---------------*/
 .container-form {
   max-width: 500px;
-
-  max-height: 400px;
+  /* Nessuna altezza massima: il pulsante Invia non deve finire sotto il footer. */
+  max-height: none;
 }
 
 /* ---- VIDEO DI SFONDO -------*/
@@ -729,14 +765,16 @@ ul li {
 /* ---------- CURSORE --------*/
 .cursor-follower {
   position: fixed;
+  top: 0;
+  left: 0;
   width: 30px;
   height: 30px;
   background-color: rgba(255, 165, 0, 0.2);
   border-radius: 50%;
   pointer-events: none;
-  transform: translate(-50%, -50%);
+  transform: translate3d(0, 0, 0) translate(-50%, -50%);
   z-index: 9999;
-  transition: transform 0.07s ease;
+  will-change: transform;
 }
 
 /* Mostra il cursore personalizzato solo su desktop più larghi di 1024px */
@@ -798,122 +836,154 @@ ul li {
   font-size: 3rem;
 }
 
-/* Spaziatura tra i componenti nella Home per schermi piccoli (telefoni) */
+/* Spaziatura e layout della Home sui telefoni.
+   Le regole sono in un unico @media valido (prima erano annidati e venivano ignorati). */
 @media (max-width: 576px) {
-  /* Se vuoi che l'ultimo elemento non abbia margin-bottom aggiuntivo */
-  .home-container > *:not(.whatsapp):last-child {
-    margin-bottom: 0;
+  .home-container {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  /* responsive per la home con schermi piccoli*/
-  /* ============================
-     Mobile-specific rules for Home
-     Targets only elements inside .home-container (phones)
-     ============================ */
-  @media (max-width: 576px) {
-    /* General container spacing and readable padding */
-    .home-container {
-      padding-left: 12px;
-      padding-right: 12px;
-    }
+  /* Hero: occupa lo schermo ma cresce col contenuto, senza tagliare testo. */
+  .home-container .hero-section {
+    height: auto !important;
+    min-height: 100svh;
+    padding: 2rem 0;
+    background-position: center top;
+    background-image: url("/assets/images/sfondoHome.jpg");
+    background-image: image-set(url("/assets/images/sfondoHome-1280.webp") type("image/webp"));
+    overflow: hidden;
+  }
 
-    /* Make hero flow naturally (no full viewport forced) */
-    .home-container .hero-section {
-      height: auto !important;
-      min-height: 50vh;
-      padding: 2rem 0;
-      background-position: center top;
-      overflow: visible;
-    }
+  .home-container .hero-content {
+    padding: 1rem;
+  }
 
-    /* Neutralize full-screen helpers used in Home only */
-    .home-container .vh-100 {
-      height: auto !important;
-      min-height: auto !important;
-      padding-top: 0;
-      padding-bottom: 1rem;
-    }
+  /* Le sezioni non sono più a tutta altezza: crescono con il contenuto. */
+  .home-container .vh-100 {
+    height: auto !important;
+    min-height: auto !important;
+    padding-top: 0;
+    padding-bottom: 1rem;
+  }
 
-    /* Sections stack vertically and have consistent spacing (100px) */
-    .home-container > *:not(.whatsapp) {
-      display: block;
-      margin-left: 0;
-      margin-right: 0;
-    }
+  .home-container > *:not(.whatsapp) {
+    display: block;
+    margin-left: 0;
+    margin-right: 0;
+  }
 
-    /* Reduce the card heights and image sizes on mobile for better fit */
-    .home-container .fixedCard {
-      min-height: 360px;
-    }
+  /* Sezione servizi compatta e senza margini negativi. */
+  .home-container #next-section {
+    padding: 1.5rem 0 1rem;
+  }
 
-    .home-container .fixedCard img {
-      height: 160px;
-    }
+  .home-container #servizi {
+    padding: 24px 4px;
+    margin-top: 0 !important;
+  }
 
-    /* ServiceSection wrapper: avoid horizontal centering that can break layout */
-    .home-container #next-section,
-    .home-container #next-section .row,
-    .home-container #next-section .col {
-      display: block !important;
-      width: 100% !important;
-      margin-bottom: 0px !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-      text-align: center;
-    }
+  .home-container #servizi .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
 
-    /* ChiSono adjustments inside Home only */
-    .home-container .chi-sono-container {
-      padding: 1rem;
-      margin: 0 auto;
-    }
+  .home-container #servizi .col-12 {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
 
-    /* Video background: limit height for mobile and keep it responsive */
-    .home-container .sezione-video-bg {
-      position: relative;
-      padding-bottom: 1rem;
-      overflow: hidden;
-    }
+  .home-container .fixedCard {
+    min-height: 0;
+  }
 
-    .home-container .sezione-video-bg .video-background,
-    .home-container .sezione-video-bg video.video-background {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0.6;
-    }
+  .home-container .fixedCard img {
+    height: 170px;
+  }
 
-    .home-container .contenuto-form {
-      padding: 1rem 0.5rem 5rem 0.5rem;
-    }
+  .home-container .fixedCard .card-body {
+    padding: 1rem;
+  }
 
-    /* Ensure fixed elements like whatsapp remain visible and not affected by margins */
-    .home-container .whatsapp {
-      position: fixed;
-    }
+  .home-container .fixedCard .card-title {
+    font-size: 1.15rem;
+  }
 
-    /* Make sure hero text scales down */
-    .home-container h1,
-    .home-container h2,
-    .home-container h3 {
-      font-size: calc(1rem + 1.5vw);
-      line-height: 1.2;
-    }
+  .home-container .fixedCard .card-text {
+    font-size: 0.95rem;
+  }
 
-    .contenuto-form {
-      padding: 1rem 0.5rem;
-    }
+  /* Chi sono: testo leggibile e titolo proporzionato. */
+  .home-container .chi-sono-container {
+    padding: 1rem;
+    margin: 0 auto;
+  }
 
-    /* Hero section: full viewport height on all screen sizes */
-    .home-container .hero-section {
-      height: 100vh !important;
-      min-height: 100vh !important;
-      padding: 0 !important;
-      overflow: hidden;
-    }
+  .home-container .chiSono {
+    font-size: clamp(2.2rem, 10vw, 3.2rem);
+  }
+
+  .home-container .sezione-video-bg {
+    position: relative;
+    padding-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .home-container .contenuto-form {
+    padding: 1rem 0.5rem 2rem 0.5rem;
+  }
+
+  .home-container .whatsapp {
+    position: fixed;
+  }
+
+  .home-container h1,
+  .home-container h2,
+  .home-container h3 {
+    font-size: clamp(1.35rem, 6vw, 2.2rem);
+    line-height: 1.2;
+  }
+
+  .home-container .display-4 {
+    font-size: clamp(2rem, 9vw, 3rem);
+  }
+
+  .home-container .display-3 {
+    font-size: clamp(1.9rem, 8vw, 2.8rem);
+  }
+
+  .home-container .lead {
+    font-size: 1rem;
+  }
+}
+
+/* Modale servizi: sempre scrollabile su schermi bassi. */
+.modal-servizi .modal-dialog {
+  margin: 1rem auto;
+  max-height: calc(100svh - 2rem);
+}
+
+.modal-servizi .modal-content {
+  max-height: 100%;
+}
+
+.modal-servizi .modal-body {
+  overflow-y: auto;
+}
+
+/* Ancore con offset per la navbar fissa. */
+#next-section,
+#servizi {
+  scroll-margin-top: 70px;
+}
+
+/* Menu mobile: pannello scuro leggibile sopra le immagini dell'hero. */
+@media (max-width: 767.98px) {
+  .navbar-collapse.show {
+    background: rgba(10, 10, 10, 0.95);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 0.5rem;
   }
 }
 
@@ -964,4 +1034,26 @@ ul li {
 .modal-dark .modal-body strong {
   color: #ff8c00;
   font-weight: 600;
+}
+
+
+/* Accessibilità: chi preferisce meno movimento non vede animazioni né transizioni. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .card-wrapper,
+  .chiSono,
+  .fade-image,
+  .fade-slide {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

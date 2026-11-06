@@ -23,6 +23,10 @@
         Invia
     </MudButton>
 
+    @if (campiNonValidi)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mt-4">Compila tutti i campi con un indirizzo email valido.</MudAlert>
+    }
     @if (inviato)
     {
         <MudAlert Severity="Severity.Success" Class="mt-4">Messaggio inviato con successo!</MudAlert>
@@ -37,29 +41,51 @@
     private readonly FormInformazioni form = new();
     private bool inviato;
     private bool errore;
+    private bool campiNonValidi;
     private bool inviando;
 
+    /// <summary>
+    /// Valida i campi, invia la richiesta al servizio applicativo e mostra l'esito.
+    /// Il form viene svuotato solo dopo un invio riuscito, così l'utente non perde i dati
+    /// in caso di errore di rete o provider email.
+    /// </summary>
     private async Task InviaAsync()
     {
-        inviando = true;
-        errore = false;
         inviato = false;
+        errore = false;
+        campiNonValidi = false;
 
-        var ok = await Contatti.InviaRichiestaAsync(form);
-        if (ok)
+        if (string.IsNullOrWhiteSpace(form.Nome) ||
+            string.IsNullOrWhiteSpace(form.Cognome) ||
+            string.IsNullOrWhiteSpace(form.Messaggio) ||
+            !System.Net.Mail.MailAddress.TryCreate(form.Email, out _))
         {
-            inviato = true;
-            form.Nome = string.Empty;
-            form.Cognome = string.Empty;
-            form.Email = string.Empty;
-            form.Messaggio = string.Empty;
-            Snackbar.Add("Messaggio inviato correttamente", Severity.Success);
-        }
-        else
-        {
-            errore = true;
+            campiNonValidi = true;
+            return;
         }
 
-        inviando = false;
+        inviando = true;
+
+        try
+        {
+            var esito = await Contatti.InviaRichiestaAsync(form);
+            if (esito)
+            {
+                inviato = true;
+                form.Nome = string.Empty;
+                form.Cognome = string.Empty;
+                form.Email = string.Empty;
+                form.Messaggio = string.Empty;
+                Snackbar.Add("Messaggio inviato correttamente", Severity.Success);
+            }
+            else
+            {
+                errore = true;
+            }
+        }
+        finally
+        {
+            inviando = false;
+        }
     }
 }
