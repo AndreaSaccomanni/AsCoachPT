@@ -1,91 +1,72 @@
-# AsCoach — Alessandro Saccomanni PT (.NET 10 + Blazor + MudBlazor)
+# AsCoachPT — Alessandro Saccomanni Personal Trainer
 
-Porting del sito di gestione appuntamenti del personal trainer dal progetto React + Spring Boot
-(`AndreaSaccomanni/FRONT_END-CAPSTONE` + `AndreaSaccomanni/CAPSTONE`) a **ASP.NET Core .NET 10 con
-Blazor (Interactive Server) e componenti MudBlazor**.
+Sito di gestione appuntamenti del personal trainer: Blazor Web App (.NET 10) con MudBlazor,
+organizzato sui quattro progetti come il sito Maddalena Pimponi.
 
-Il progetto React/Java resta invariato e non viene toccato da questa repository.
-
-## Stack
-
-| Area | Tecnologia |
-|---|---|
-| UI | Blazor Web App (.NET 10), interattività globale Server |
-| Componenti | MudBlazor 9 (tabelle, dialog, form, picker, snackbar) + CSS originale del sito |
-| Persistenza | EF Core 10 + Npgsql (PostgreSQL) / SQLite per sviluppo rapido |
-| Auth | Cookie di autenticazione + claim di ruolo (`USER`, `ADMIN`, `PERSONAL_TRAINER`), hash BCrypt compatibili con Spring |
-| Email | MailKit (SMTP Gmail), config opzionale |
+La repository React/Spring originale (`FRONT_END-CAPSTONE` + `CAPSTONE`) resta invariata.
 
 ## Struttura
 
 ```
-AsCoach.sln
-src/AsCoachPT/
-  Components/Pages/      # Home, ChiSono, Servizi, Contatti, Login, Registrazione,
-                         # Prenota, Prenotazioni, Utenti, Indirizzi, GestioneIndirizzi
-  Components/Layout/     # Navbar, Footer, MainLayout (provider MudBlazor + tema)
-  Domain/                # Entità e enum
-  Data/                  # DbContext (mapping schema Hibernate), seeder
-  Services/              # Prenotazioni (regole slot), Utenti, Indirizzi, Mail, Password
-  wwwroot/               # CSS originale, immagini, video, JS (cursore, animazioni, Google Places)
-  Dockerfile             # immagine di produzione per Render
+AsCoachPT.sln
+AsCoachPT.Domain/          Entità e regole di dominio (utenti, studi, servizi, prenotazioni)
+AsCoachPT.Application/     Modelli applicativi, interfacce repository, servizi di business
+AsCoachPT.Infrastructure/  EF Core, repository, SMTP, BCrypt, registrazione DI
+AsCoachPT.UI/              Blazor, MudBlazor, pagine, autenticazione a cookie, asset
+Dockerfile                 immagine di produzione (Render)
+render.yaml                blueprint Render: database + web service
 ```
+
+Direzione delle dipendenze: `UI → Application → Domain`; `Infrastructure` implementa le
+interfacce di Application e viene registrata con `AddInfrastructure(configuration)`.
 
 ## Avvio in Visual Studio
 
-1. Aprire `AsCoach.sln`.
-2. Impostare `AsCoachPT` come progetto di avvio e premere F5.
-
-In sviluppo la connessione predefinita è SQLite (`ascoach.db`). Per usare il clone PostgreSQL
-locale (`ascoach_dotnet`):
-
-```bash
-dotnet user-secrets set "ConnectionStrings:Default" \
-  "Host=localhost;Port=5432;Database=ascoach_dotnet;Username=postgres;Password=***" \
-  --project src/AsCoachPT
-```
+1. Aprire `AsCoachPT.sln`.
+2. Impostare **AsCoachPT.UI** come progetto di avvio e il profilo **https**.
+3. F5 → `https://localhost:7039`.
 
 Da CLI:
 
 ```bash
-dotnet run --project src/AsCoachPT
+dotnet run --project AsCoachPT.UI
+```
+
+In sviluppo la connessione arriva dai **User Secrets** del progetto UI
+(`ConnectionStrings:Default`), altrimenti si usa un file SQLite `ascoachpt.db`.
+
+Esempio per collegare il clone PostgreSQL locale:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:Default" \
+  "Host=localhost;Port=5432;Database=ascoachpt;Username=postgres;Password=***" \
+  --project AsCoachPT.UI
 ```
 
 ## Database
 
-Il database di riferimento del progetto React è stato clonato in **`ascoach_dotnet`** sullo stesso
-PostgreSQL 17 locale (utente `postgres`) e registrato in DBeaver come
-`AsCoach .NET (ascoach_dotnet)`.
+Schema identico a quello generato da Hibernate (`utenti`, `servizi` con `servizio_type`,
+`prenotazioni`, `indirizzi`, `ruoli`). In produzione il database è il PostgreSQL Render
+`ascoachpt-db`; in locale il clone `ascoachpt` è registrato in DBeaver.
+I dati iniziali (ruoli, massaggi, consulenze) vengono inseriti automaticamente se mancanti.
 
-Lo schema è identico a quello generato da Hibernate: `utenti`, `servizi` (TPH con
-`servizio_type`), `prenotazioni`, `indirizzi`, `ruoli`. Le tabelle legacy `tipo_servizi` /
-`dettaglio_servizi` presenti nel DB di origine non sono usate.
+## Email
 
-## Configurazione
+L'invio usa MailKit con configurazione `Mail` (o `MAIL_USERNAME`/`MAIL_PASSWORD`).
+Il piano **free** di Render blocca le porte SMTP in uscita: per le email serve un piano
+superiore oppure un provider HTTP. Senza configurazione l'invio restituisce errore in UI
+senza bloccare prenotazioni e registrazioni.
 
-| Impostazione | Sviluppo | Produzione |
+## Pubblicazione
+
+| Ramo | Uso | Deploy |
 |---|---|---|
-| Database | user secrets / `ConnectionStrings:Default` | `DATABASE_URL` o `SPRING_DATASOURCE_URL` |
-| SMTP | `Mail:Username` / `Mail:Password` (o secrets) | `MAIL_USERNAME` / `MAIL_PASSWORD` |
-| Porta | `launchSettings.json` | `PORT` |
+| `develop` | sviluppo e test | nessun deploy automatico |
+| `main` | produzione | Render builda il Dockerfile e aggiorna `ascoach.it` |
 
-Senza credenziali SMTP l'invio email fallisce in modo esplicito (log + messaggio in UI), senza
-bloccare prenotazioni e registrazioni.
+Flusso: commit su `develop` → push → verifica locale → merge/pull request verso `main` →
+Render avvia automaticamente build e deploy → `https://ascoach.it` aggiornato.
+Il web service free va in sleep dopo inattività: il primo accesso può richiedere qualche secondo.
 
-## Deploy (Render) e dominio
-
-1. Nuovo **Web Service** Docker dal repository, root directory `src/AsCoachPT`.
-2. Env: `DATABASE_URL`, `MAIL_USERNAME`, `MAIL_PASSWORD`.
-3. Puntare `ascoach.it` / `www.ascoach.it` a questo servizio invece del sito statico React.
-
-Blazor Server richiede una connessione persistente (SignalR), supportata dal web service Docker.
-Con il routing lato server non serve più il rewrite SPA che oggi causa i 404 sui deep link.
-
-## Note funzionali
-
-- Regole prenotazioni identiche all'originale: apertura 09:00, chiusura 20:30, sabato entro le
-  13:00, domenica chiusa, slot da 15 minuti, controllo sovrapposizioni.
-- Giorni settimanali assegnabili a un solo studio; eliminazione indirizzo con prenotazioni
-  collegate richiede conferma.
-- Google Places per l'autocomplete indirizzi: richiede una API key con billing attivo (la key
-  attuale del sito restituisce `BillingNotEnabledMapError`).
+Prima del primo deploy della nuova struttura il servizio Render deve puntare alla root della
+repository (`rootDir` vuoto) e al `Dockerfile` in radice.

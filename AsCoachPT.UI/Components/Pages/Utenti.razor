@@ -1,0 +1,266 @@
+@page "/utenti"
+@attribute [Authorize(Roles = "ADMIN,PERSONAL_TRAINER")]
+@inject UtenteService UtentiSvc
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-8">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <MudText Typo="Typo.h4">Lista Utenti</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="ApriNuovo">
+            Aggiungi Utente
+        </MudButton>
+    </div>
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (utenti.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning">Nessun utente trovato.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@Righe" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true" Elevation="2">
+            <HeaderContent>
+                <MudTh>#</MudTh>
+                <MudTh>Nome</MudTh>
+                <MudTh>Cognome</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Data di nascita</MudTh>
+                <MudTh>Username</MudTh>
+                <MudTh>Ruolo</MudTh>
+                <MudTh>Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="riga">
+                <MudTd DataLabel="#">@riga.Posizione</MudTd>
+                <MudTd DataLabel="Nome">@riga.Utente.Nome</MudTd>
+                <MudTd DataLabel="Cognome">@riga.Utente.Cognome</MudTd>
+                <MudTd DataLabel="Email">@riga.Utente.Email</MudTd>
+                <MudTd DataLabel="Nascita">@(riga.Utente.DataDiNascita?.ToString("dd/MM/yyyy") ?? "-")</MudTd>
+                <MudTd DataLabel="Username">@riga.Utente.Username</MudTd>
+                <MudTd DataLabel="Ruolo">@riga.Utente.Ruolo</MudTd>
+                <MudTd DataLabel="Azioni">
+                    <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="() => ApriModifica(riga.Utente)">Modifica</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="() => ChiediEliminazione(riga.Utente.Id)">Elimina</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudDialog @bind-Visible="modaleModificaAperta">
+        <TitleContent><MudText Typo="Typo.h6">Modifica Utente</MudText></TitleContent>
+        <DialogContent>
+            @if (!string.IsNullOrWhiteSpace(erroreModale))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">@erroreModale</MudAlert>
+            }
+            <MudTextField T="string" Label="Nome" @bind-Value="modifica.Nome" Variant="Variant.Outlined" Class="mb-4" />
+            <MudTextField T="string" Label="Cognome" @bind-Value="modifica.Cognome" Variant="Variant.Outlined" Class="mb-4" />
+            <MudTextField T="string" Label="Email" @bind-Value="modifica.Email" Variant="Variant.Outlined" Class="mb-4" />
+            <MudDatePicker Editable="true" @bind-Date="modifica.DataDiNascita" Label="Data di nascita" Color="Color.Primary" Class="mb-4" />
+            <MudTextField T="string" Label="Username" @bind-Value="modifica.Username" Variant="Variant.Outlined" Class="mb-4" />
+            <MudSelect T="string" Label="Ruolo" @bind-Value="modifica.Ruolo" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@nameof(UserRole.ADMIN)">ADMIN</MudSelectItem>
+                <MudSelectItem T="string" Value="@nameof(UserRole.PERSONAL_TRAINER)">PERSONAL_TRAINER</MudSelectItem>
+                <MudSelectItem T="string" Value="@nameof(UserRole.USER)">USER</MudSelectItem>
+            </MudSelect>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => modaleModificaAperta = false">Chiudi</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SalvaModificaAsync" Disabled="salvando">Salva Modifiche</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-Visible="modaleNuovoAperta">
+        <TitleContent><MudText Typo="Typo.h6">Aggiungi Nuovo Utente</MudText></TitleContent>
+        <DialogContent>
+            @if (!string.IsNullOrWhiteSpace(erroreModale))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">@erroreModale</MudAlert>
+            }
+            <MudTextField T="string" Label="Nome" @bind-Value="nuovo.Nome" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+            <MudTextField T="string" Label="Cognome" @bind-Value="nuovo.Cognome" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+            <MudTextField T="string" Label="Email" @bind-Value="nuovo.Email" InputType="InputType.Email" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+            <MudDatePicker Editable="true" @bind-Date="nuovo.DataDiNascita" Label="Data di nascita" Color="Color.Primary" Class="mb-4" />
+            <MudTextField T="string" Label="Username" @bind-Value="nuovo.Username" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+            <MudTextField T="string" Label="Password" @bind-Value="nuovo.Password" InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+            <MudSelect T="string" Label="Ruolo" @bind-Value="nuovo.Ruolo" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@nameof(UserRole.ADMIN)">ADMIN</MudSelectItem>
+                <MudSelectItem T="string" Value="@nameof(UserRole.PERSONAL_TRAINER)">PERSONAL_TRAINER</MudSelectItem>
+                <MudSelectItem T="string" Value="@nameof(UserRole.USER)">USER</MudSelectItem>
+            </MudSelect>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => modaleNuovoAperta = false">Annulla</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SalvaNuovoAsync" Disabled="salvando">Aggiungi Utente</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-Visible="confermaAperta">
+        <TitleContent><MudText Typo="Typo.h6">Cancella utente</MudText></TitleContent>
+        <DialogContent>
+            <MudText>Sei sicuro di voler cancellare questo utente?</MudText>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => confermaAperta = false">Annulla</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="EliminaConfermataAsync">Elimina</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudContainer>
+
+@code {
+    private record Riga(int Posizione, Utente Utente);
+
+    private List<Utente> utenti = new();
+    private List<Riga> Righe = new();
+    private UtenteModifica modifica = new();
+    private NuovoUtente nuovo = new();
+    private bool loading = true;
+    private bool salvando;
+    private bool modaleModificaAperta;
+    private bool modaleNuovoAperta;
+    private bool confermaAperta;
+    private string? erroreModale;
+    private long idDaEliminare;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CaricaAsync();
+        loading = false;
+    }
+
+    private async Task CaricaAsync()
+    {
+        utenti = await UtentiSvc.ElencaAsync();
+        Righe = utenti.Select((u, i) => new Riga(i + 1, u)).ToList();
+    }
+
+    private void ApriModifica(Utente utente)
+    {
+        erroreModale = null;
+        modifica = new UtenteModifica
+        {
+            Id = utente.Id,
+            Nome = utente.Nome,
+            Cognome = utente.Cognome,
+            Email = utente.Email,
+            DataDiNascita = utente.DataDiNascita?.ToDateTime(TimeOnly.MinValue),
+            Username = utente.Username,
+            Ruolo = (utente.Ruolo ?? UserRole.USER).ToString()
+        };
+        modaleModificaAperta = true;
+    }
+
+    private void ApriNuovo()
+    {
+        erroreModale = null;
+        nuovo = new NuovoUtente();
+        modaleNuovoAperta = true;
+    }
+
+    private async Task SalvaModificaAsync()
+    {
+        salvando = true;
+        erroreModale = null;
+        try
+        {
+            await UtentiSvc.AggiornaAsync(modifica.Id, new Utente
+            {
+                Nome = modifica.Nome,
+                Cognome = modifica.Cognome,
+                Email = modifica.Email,
+                DataDiNascita = modifica.DataDiNascita is null ? null : DateOnly.FromDateTime(modifica.DataDiNascita.Value),
+                Username = modifica.Username,
+                Ruolo = Enum.Parse<UserRole>(modifica.Ruolo)
+            });
+
+            await CaricaAsync();
+            modaleModificaAperta = false;
+            Snackbar.Add("Utente aggiornato con successo", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            erroreModale = ex.Message;
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private async Task SalvaNuovoAsync()
+    {
+        salvando = true;
+        erroreModale = null;
+        try
+        {
+            await UtentiSvc.RegistraAsync(new RegisterRequest
+            {
+                Nome = nuovo.Nome,
+                Cognome = nuovo.Cognome,
+                Email = nuovo.Email,
+                DataDiNascita = nuovo.DataDiNascita is null ? null : DateOnly.FromDateTime(nuovo.DataDiNascita.Value),
+                Username = nuovo.Username,
+                Password = nuovo.Password,
+                Ruolo = nuovo.Ruolo
+            });
+
+            await CaricaAsync();
+            modaleNuovoAperta = false;
+            Snackbar.Add("Utente aggiunto con successo", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            erroreModale = ex.Message;
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private void ChiediEliminazione(long id)
+    {
+        idDaEliminare = id;
+        confermaAperta = true;
+    }
+
+    private async Task EliminaConfermataAsync()
+    {
+        try
+        {
+            await UtentiSvc.EliminaAsync(idDaEliminare);
+            await CaricaAsync();
+            Snackbar.Add("Utente eliminato con successo", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private sealed class UtenteModifica
+    {
+        public long Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Cognome { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public DateTime? DataDiNascita { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Ruolo { get; set; } = nameof(UserRole.USER);
+    }
+
+    private sealed class NuovoUtente
+    {
+        public string Nome { get; set; } = string.Empty;
+        public string Cognome { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public DateTime? DataDiNascita { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Ruolo { get; set; } = nameof(UserRole.USER);
+    }
+}
