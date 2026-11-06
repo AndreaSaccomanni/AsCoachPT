@@ -54,6 +54,7 @@ builder.Services.AddOptions<MailOptions>()
             ? Environment.GetEnvironmentVariable("MAIL_PASSWORD") ?? string.Empty
             : options.Password;
     });
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<MailService>();
 builder.Services.AddScoped<UtenteService>();

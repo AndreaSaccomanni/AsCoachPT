@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
@@ -17,11 +19,17 @@ public class MailOptions
     public string ContactRecipient { get; set; } = "alessandrosaccomanni.pt@gmail.com";
 }
 
-public class MailService(IOptions<MailOptions> options, ILogger<MailService> logger)
+public class MailService(IOptions<MailOptions> options, IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<MailService> logger)
 {
     private readonly MailOptions _options = options.Value;
 
     private bool IsConfigured => !string.IsNullOrWhiteSpace(_options.Host);
+
+    private string? ResendApiKey =>
+        configuration["Resend:ApiKey"] ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
+
+    private string ResendFrom =>
+        configuration["Resend:From"] ?? Environment.GetEnvironmentVariable("RESEND_FROM") ?? "onboarding@resend.dev";
 
     private SecureSocketOptions SocketOptions => _options.Security switch
     {
@@ -33,6 +41,11 @@ public class MailService(IOptions<MailOptions> options, ILogger<MailService> log
 
     public async Task<bool> InviaEmailAsync(string destinatario, string oggetto, string contenuto, string? replyTo = null)
     {
+        if (!string.IsNullOrWhiteSpace(ResendApiKey))
+        {
+            return await InviaConResendAsync(destinatario, oggetto, contenuto, replyTo);
+        }
+
         if (!IsConfigured)
         {
             logger.LogWarning("SMTP non configurato: email a {Destinatario} non inviata", destinatario);
@@ -67,6 +80,48 @@ public class MailService(IOptions<MailOptions> options, ILogger<MailService> log
         catch (Exception ex)
         {
             logger.LogError(ex, "Errore nell'invio della mail a {Destinatario}", destinatario);
+            return false;
+        }
+    }
+
+    private async Task<bool> InviaConResendAsync(string destinatario, string oggetto, string contenuto, string? replyTo)
+    {
+        var corpo = new Dictionary<string, object>
+        {
+            ["from"] = ResendFrom,
+            ["to"] = new[] { destinatario },
+            ["subject"] = oggetto,
+            ["text"] = contenuto
+        };
+
+        if (!string.IsNullOrWhiteSpace(replyTo))
+        {
+            corpo["reply_to"] = replyTo;
+        }
+
+        var client = httpClientFactory.CreateClient();
+        using var richiesta = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails")
+        {
+            Content = JsonContent.Create(corpo)
+        };
+        richiesta.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ResendApiKey);
+
+        try
+        {
+            using var risposta = await client.SendAsync(richiesta);
+            if (risposta.IsSuccessStatusCode)
+            {
+                logger.LogInformation("Email Resend inviata a {Destinatario}", destinatario);
+                return true;
+            }
+
+            var dettaglio = await risposta.Content.ReadAsStringAsync();
+            logger.LogError("Resend ha rifiutato l'email a {Destinatario}: {Status} {Dettaglio}", destinatario, (int)risposta.StatusCode, dettaglio);
+            return false;
+        }
+        catch (Exception eccezione)
+        {
+            logger.LogError(eccezione, "Errore Resend per {Destinatario}", destinatario);
             return false;
         }
     }
