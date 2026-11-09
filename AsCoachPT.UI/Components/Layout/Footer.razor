@@ -1,9 +1,16 @@
-@inject NavigationManager NavigationManager
-
-<footer class="footer-gradient @(IsHome ? "footer-home" : "footer-servizi") text-white py-4">
+<footer class="site-footer">
     <div class="container">
-        <div class="row g-4 text-center text-md-start">
-            <div class="col-md-5">
+        <div class="row g-5">
+            <div class="col-lg-4">
+                <a href="/" class="footer-brand" aria-label="Alessandro Saccomanni — Personal Trainer">
+                    <img src="logo.webp" alt="A.S. Coach" class="footer-logo" width="43" height="43" />
+                </a>
+                <p class="footer-claim">
+                    Chinesiologo sportivo e personal trainer: allenamento, massaggio e recupero costruiti sulla persona.
+                </p>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
                 <h5 class="footer-title">Contatti</h5>
                 <div class="footer-row">
                     <i class="fas fa-envelope contact-icon" aria-hidden="true"></i>
@@ -22,16 +29,18 @@
                 </div>
             </div>
 
-            <div class="col-md-4 d-none d-md-block">
-                <h5 class="footer-title">Link utili</h5>
+            <div class="col-sm-6 col-lg-2">
+                <h5 class="footer-title">Esplora</h5>
                 <ul class="footer-links">
-                    <li><a href="/chiSono" class="footer-link">Chi Sono</a></li>
+                    <li><a href="/" class="footer-link">Home</a></li>
+                    <li><a href="/chiSono" class="footer-link">Chi sono</a></li>
                     <li><a href="/servizi" class="footer-link">Servizi</a></li>
                     <li><a href="/indirizzo" class="footer-link">Indirizzi</a></li>
+                    <li><a href="/creaprenotazione" class="footer-link">Prenota</a></li>
                 </ul>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-sm-6 col-lg-3">
                 <h5 class="footer-title">Seguimi</h5>
                 <div class="footer-socials">
                     <a href="https://www.instagram.com/_as_coach/" target="_blank" rel="noopener noreferrer" class="footer-social" aria-label="Instagram">
@@ -40,17 +49,16 @@
                     <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" class="footer-social" aria-label="Facebook">
                         <i class="fab fa-facebook"></i>
                     </a>
+                    <a href="https://wa.me/3772082714" target="_blank" rel="noopener noreferrer" class="footer-social" aria-label="WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
                 </div>
+                <p class="footer-note">Ricevo su appuntamento.</p>
             </div>
         </div>
 
-        <hr class="footer-divider" />
-        <div class="text-center footer-copy">
-            <small>© @DateTime.Now.Year Alessandro Saccomanni - Personal Trainer</small>
+        <div class="footer-bottom">
+            <small>© @DateTime.Now.Year Alessandro Saccomanni — Personal Trainer</small>
         </div>
     </div>
 </footer>
-
-@code {
-    private bool IsHome => new Uri(NavigationManager.Uri).AbsolutePath is "/" or "";
-}

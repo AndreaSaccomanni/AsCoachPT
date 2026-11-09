@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider Theme="Tema" IsDarkMode="true" />
+<MudThemeProvider Theme="Tema" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -16,25 +16,41 @@
 <div class="cursor-follower" id="cursorFollower"></div>
 
 @code {
+    /// <summary>
+    /// Palette chiara e morbida in toni salvia e sabbia: solo configurazione
+    /// visiva dei componenti MudBlazor, nessun comportamento.
+    /// </summary>
     private readonly MudTheme Tema = new()
     {
-        PaletteDark = new PaletteDark
+        PaletteLight = new PaletteLight
         {
-            Primary = "#ff8c00",
-            Secondary = "#ffb74d",
-            Background = "#000000",
-            Surface = "#1a1a1a",
-            AppbarBackground = "#0b0b0b",
-            TextPrimary = "#f8f9fa",
-            DrawerBackground = "#121212",
-            Success = "#2e7d32",
-            Error = "#d32f2f",
-            Warning = "#ff9800",
-            Info = "#0288d1"
+            Primary = "#4E6A55",
+            Secondary = "#8CA68C",
+            Tertiary = "#C9B79C",
+            Background = "#F7F7F2",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#F7F7F2",
+            AppbarText = "#2A352D",
+            DrawerBackground = "#EDF2EA",
+            DrawerText = "#2A352D",
+            TextPrimary = "#2A352D",
+            TextSecondary = "rgba(42, 53, 45, 0.64)",
+            Success = "#5B7F63",
+            Error = "#A05348",
+            Warning = "#B08A4F",
+            Info = "#5D7B84"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = new[] { "Manrope", "system-ui", "sans-serif" } },
+            H4 = new H4Typography { FontFamily = new[] { "Fraunces", "Georgia", "serif" }, FontWeight = "400" },
+            H5 = new H5Typography { FontFamily = new[] { "Fraunces", "Georgia", "serif" }, FontWeight = "400" },
+            H6 = new H6Typography { FontFamily = new[] { "Fraunces", "Georgia", "serif" }, FontWeight = "500" },
+            Button = new ButtonTypography { FontFamily = new[] { "Manrope", "system-ui", "sans-serif" }, FontWeight = "500", LetterSpacing = "0.04em" }
         },
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "10px"
+            DefaultBorderRadius = "16px"
         }
     };
 }

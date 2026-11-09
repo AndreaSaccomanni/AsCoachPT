@@ -1,24 +1,26 @@
 ﻿@page "/"
 
-<div class="container-fluid home-container text-light px-0">
+<div class="home-container px-0">
     <HeroSection />
 
-    <section id="next-section" class="min-vh-100 d-flex justify-content-center align-items-center py-5">
+    <section id="next-section" class="services-section">
         <ServiceSection DettagliInModale="true" />
     </section>
 
-    <section class="mt-4 text-center py-5">
+    <section class="chi-sono-section">
         <ChiSono />
     </section>
 
-    <section class="sezione-video-bg text-center">
+    <section class="contatti-section text-center">
         <div class="contenuto-form">
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-7 col-xl-6">
-                        <p class="section-eyebrow">Contatti</p>
-                        <h2 class="section-title mb-2">Vuoi iniziare il tuo percorso?</h2>
-                        <p class="section-sub mb-4">Scrivimi: ti rispondo con il primo passo da fare.</p>
+                        <div class="reveal">
+                            <p class="section-eyebrow">Contatti</p>
+                            <h2 class="section-title mb-2">Vuoi iniziare il tuo percorso?</h2>
+                            <p class="section-sub mb-4">Scrivimi: ti rispondo con il primo passo da fare.</p>
+                        </div>
                         <ContactForm />
                     </div>
                 </div>

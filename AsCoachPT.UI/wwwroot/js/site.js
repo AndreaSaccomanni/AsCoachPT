@@ -28,20 +28,42 @@
         }, { passive: true });
     }
 
-    function initReveal() {
-        if (typeof IntersectionObserver === "undefined") return;
+    // Comparsa progressiva degli elementi mentre si scorre: le classi sono
+    // aggiunte dopo l'idratazione di Blazor, quindi si ri-osserva a ogni
+    // aggiornamento del DOM. Se il browser non supporta IntersectionObserver
+    // il documento torna visibile per intero.
+    const selettoreReveal = ".reveal, .card-wrapper, .info-panel, .form-card, .section-head";
 
-        const targets = document.querySelectorAll(".card-wrapper, .fade-image, .chiSono, .fade-slide");
+    function initReveal() {
+        if (typeof IntersectionObserver === "undefined") {
+            document.documentElement.classList.remove("js-reveal");
+            return;
+        }
+
+        window.__asCoachRevealAttivo = true;
+
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    entry.target.classList.add("show");
-                    entry.target.classList.add("visible");
+                    entry.target.classList.add("is-visible");
+                    observer.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.2 });
+        }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
 
-        targets.forEach((el) => observer.observe(el));
+        const osserva = () => {
+            document.querySelectorAll(selettoreReveal).forEach((el) => {
+                if (!el.classList.contains("is-visible")) {
+                    observer.observe(el);
+                }
+            });
+        };
+
+        osserva();
+
+        // Dopo l'idratazione alcune parti possono essere riscritte da Blazor.
+        setTimeout(osserva, 400);
+        setTimeout(osserva, 1400);
     }
 
     function boot() {
