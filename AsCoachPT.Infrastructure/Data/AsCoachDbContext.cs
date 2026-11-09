@@ -55,6 +55,7 @@ public class AsCoachDbContext : DbContext
             e.Property(x => x.Longitudine).HasColumnName("longitudine");
             e.Property(x => x.NomeStudio).HasColumnName("nome_studio");
             e.Property(x => x.GiorniDisponibili).HasColumnName("giorni_disponibili");
+            e.Property(x => x.Attivo).HasColumnName("attivo").HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Servizio>(e =>

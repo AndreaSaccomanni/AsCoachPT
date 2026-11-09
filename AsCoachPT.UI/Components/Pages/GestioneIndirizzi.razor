@@ -35,6 +35,7 @@
                 <MudTh>Città</MudTh>
                 <MudTh>Provincia</MudTh>
                 <MudTh>Nome Studio</MudTh>
+                <MudTh>Stato</MudTh>
                 <MudTh>Giorni</MudTh>
                 <MudTh>Azioni</MudTh>
             </HeaderContent>
@@ -45,8 +46,19 @@
                 <MudTd DataLabel="Città">@riga.Indirizzo.Citta</MudTd>
                 <MudTd DataLabel="Provincia">@riga.Indirizzo.Provincia</MudTd>
                 <MudTd DataLabel="Studio">@riga.Indirizzo.NomeStudio</MudTd>
+                <MudTd DataLabel="Stato">
+                    <span class="stato-studio @(riga.Indirizzo.Attivo ? "attivo" : "disabilitato")">
+                        @(riga.Indirizzo.Attivo ? "Attivo" : "Disabilitato")
+                    </span>
+                </MudTd>
                 <MudTd DataLabel="Giorni">@(riga.Indirizzo.Giorni.Count > 0 ? string.Join(" - ", riga.Indirizzo.Giorni) : "Nessun giorno assegnato")</MudTd>
                 <MudTd DataLabel="Azioni">
+                    <MudButton Variant="Variant.Text"
+                               Color="@(riga.Indirizzo.Attivo ? Color.Warning : Color.Success)"
+                               StartIcon="@(riga.Indirizzo.Attivo ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                               OnClick="() => CambiaStatoAsync(riga.Indirizzo)">
+                        @(riga.Indirizzo.Attivo ? "Disabilita" : "Abilita")
+                    </MudButton>
                     <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
                                OnClick="() => ApriModifica(riga.Indirizzo)">Modifica</MudButton>
                     <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
@@ -82,11 +94,17 @@
             <MudTextField T="string" Label="Nome Studio" @bind-Value="modale.NomeStudio" Variant="Variant.Outlined" Class="mb-4" Required="true" />
 
             <MudText Typo="Typo.subtitle2" Class="mb-2">Giorni disponibili</MudText>
+            @if (!modale.Attivo)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-2">
+                    Studio disabilitato: i giorni sono liberi. Riabilitalo dalla lista per riassegnarli.
+                </MudAlert>
+            }
             @foreach (var giorno in GiorniSettimana)
             {
                 var assegnatoAltrove = giorniAssegnati.Contains(giorno) && !modale.Giorni.Contains(giorno);
                 <MudCheckBox T="bool" Value="@modale.Giorni.Contains(giorno)" Label="@giorno"
-                             Disabled="@assegnatoAltrove"
+                             Disabled="@(!modale.Attivo || assegnatoAltrove)"
                              ValueChanged="@((bool v) => ToggleGiorno(giorno, v))" Color="Color.Primary" />
             }
         </DialogContent>
@@ -136,9 +154,30 @@
 
     private async Task CaricaAsync()
     {
-        indirizzi = await IndirizziSvc.ElencaAsync();
-        giorniAssegnati = indirizzi.SelectMany(i => i.Giorni).ToList();
+        indirizzi = await IndirizziSvc.ElencaAsync(includiDisabilitati: true);
+        giorniAssegnati = indirizzi.Where(i => i.Attivo).SelectMany(i => i.Giorni).ToList();
         Righe = indirizzi.Select((i, idx) => new Riga(idx + 1, i)).ToList();
+    }
+
+    /// <summary>Abilita o disabilita lo studio: disabilitandolo i giorni tornano liberi.</summary>
+    private async Task CambiaStatoAsync(Indirizzo indirizzo)
+    {
+        var disabilitato = indirizzo.Attivo;
+
+        try
+        {
+            await IndirizziSvc.ImpostaAttivoAsync(indirizzo.Id, !indirizzo.Attivo);
+            await CaricaAsync();
+            Snackbar.Add(
+                disabilitato
+                    ? "Indirizzo disabilitato: i giorni sono di nuovo disponibili per un altro studio."
+                    : "Indirizzo riabilitato: assegna nuovamente i giorni di ricevimento.",
+                Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private void ApriAggiunta()
@@ -161,6 +200,7 @@
         modale = new IndirizzoModale
         {
             Id = indirizzo.Id,
+            Attivo = indirizzo.Attivo,
             Via = indirizzo.Via,
             NumeroCivico = indirizzo.NumeroCivico,
             Citta = indirizzo.Citta,
@@ -288,6 +328,7 @@
     private sealed class IndirizzoModale
     {
         public long? Id { get; set; }
+        public bool Attivo { get; set; } = true;
         public string Luogo { get; set; } = string.Empty;
         public string LuogoTrovato { get; set; } = string.Empty;
         public string Via { get; set; } = string.Empty;

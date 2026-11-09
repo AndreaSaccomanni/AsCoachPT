@@ -28,20 +28,42 @@
         }, { passive: true });
     }
 
-    function initReveal() {
-        if (typeof IntersectionObserver === "undefined") return;
+    // Comparsa progressiva degli elementi mentre si scorre: le classi sono
+    // aggiunte dopo l'idratazione di Blazor, quindi si ri-osserva a ogni
+    // aggiornamento del DOM. Se il browser non supporta IntersectionObserver
+    // il documento torna visibile per intero.
+    const selettoreReveal = ".reveal, .card-wrapper, .info-panel, .form-card, .section-head";
 
-        const targets = document.querySelectorAll(".card-wrapper, .fade-image, .chiSono, .fade-slide");
+    function initReveal() {
+        if (typeof IntersectionObserver === "undefined") {
+            document.documentElement.classList.remove("js-reveal");
+            return;
+        }
+
+        window.__asCoachRevealAttivo = true;
+
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    entry.target.classList.add("show");
-                    entry.target.classList.add("visible");
+                    entry.target.classList.add("is-visible");
+                    observer.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.2 });
+        }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
 
-        targets.forEach((el) => observer.observe(el));
+        const osserva = () => {
+            document.querySelectorAll(selettoreReveal).forEach((el) => {
+                if (!el.classList.contains("is-visible")) {
+                    observer.observe(el);
+                }
+            });
+        };
+
+        osserva();
+
+        // Dopo l'idratazione alcune parti possono essere riscritte da Blazor.
+        setTimeout(osserva, 400);
+        setTimeout(osserva, 1400);
     }
 
     function boot() {
@@ -76,7 +98,25 @@ window.asCoachScrollTo = function (id) {
         }
     }
 
-    const top = sezione.getBoundingClientRect().top + window.scrollY - offset;
+    const rettangolo = sezione.getBoundingClientRect();
+    const spazio = window.innerHeight - offset;
+    const carte = [...sezione.querySelectorAll(".fixedCard")];
+
+    // Contenuto utile: dall'inizio della sezione all'ultima card.
+    const basso = carte.length
+        ? Math.max(...carte.map((carta) => carta.getBoundingClientRect().bottom))
+        : rettangolo.bottom;
+    const altezza = Math.min(rettangolo.height, basso - rettangolo.top);
+
+    let top;
+    if (altezza <= spazio) {
+        // Tutto visibile: centra titolo e card nello schermo.
+        top = rettangolo.top + window.scrollY - offset - (spazio - altezza) / 2;
+    } else {
+        // Sezione più alta dello schermo: allinea il fondo delle card con un margine.
+        top = basso + window.scrollY - spazio + 16;
+    }
+
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
 };
 
@@ -165,3 +205,49 @@ window.asCoachSearchPlace = function (query) {
         cerca();
     });
 };
+
+// ---------------------------------------------------------------------------
+// Scadenza della sessione per inattività.
+// Dopo 30 minuti senza interazioni l'utente viene sloggato e riportato al
+// login: la pagina viene ricaricata per chiudere anche il circuito Blazor.
+// ---------------------------------------------------------------------------
+(function () {
+    var MINUTI_INATTIVITA = 30;
+    var timer = null;
+
+    function utenteAutenticato() {
+        return !!document.querySelector('form[action="/auth/logout"]');
+    }
+
+    function disconnetti() {
+        if (!utenteAutenticato()) {
+            return;
+        }
+
+        fetch("/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        })
+            .catch(function () { /* anche se la chiamata fallisce, torniamo al login */ })
+            .then(function () {
+                window.location.replace("/login?timeout=1");
+            });
+    }
+
+    function riavvia() {
+        window.clearTimeout(timer);
+        if (!utenteAutenticato()) {
+            return;
+        }
+        timer = window.setTimeout(disconnetti, MINUTI_INATTIVITA * 60 * 1000);
+    }
+
+    ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "wheel", "focus"].forEach(function (evento) {
+        window.addEventListener(evento, riavvia, { passive: true });
+    });
+
+    // Ricalcola anche quando cambia pagina (enhanced navigation di Blazor).
+    document.addEventListener("blazor:enhancedload", riavvia);
+    riavvia();
+})();

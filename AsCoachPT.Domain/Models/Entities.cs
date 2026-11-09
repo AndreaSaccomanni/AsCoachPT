@@ -35,6 +35,12 @@ public class Indirizzo
     public string NomeStudio { get; set; } = string.Empty;
     public string? GiorniDisponibili { get; set; }
 
+    /// <summary>
+    /// Falso quando lo studio è disabilitato: non compare nelle prenotazioni
+    /// e i suoi giorni tornano liberi per un altro indirizzo.
+    /// </summary>
+    public bool Attivo { get; set; } = true;
+
     [NotMapped]
     public List<string> Giorni => string.IsNullOrWhiteSpace(GiorniDisponibili)
         ? new List<string>()

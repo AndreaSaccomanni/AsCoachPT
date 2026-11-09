@@ -2,28 +2,40 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 
-<header class="hero-section d-flex justify-content-center align-items-center text-center">
-    <div class="hero-content text-white">
+<header class="hero-section">
+    <picture class="hero-picture">
+        <source media="(max-width: 767.98px)" srcset="assets/images/sfondoHome-mobile.webp" />
+        <img class="hero-media"
+             src="assets/images/sfondoHome-1920.webp"
+             srcset="assets/images/sfondoHome-1280.webp 1280w, assets/images/sfondoHome-1920.webp 1920w"
+             sizes="100vw"
+             alt=""
+             aria-hidden="true"
+             fetchpriority="high"
+             decoding="async" />
+    </picture>
+
+    <div class="hero-content">
         <AuthorizeView>
             <Authorized Context="auth">
                 <p class="hero-eyebrow">Bentornato</p>
-                <h2 class="hero-greeting display-3 fw-bold nome-utente font-Arvo">@(auth.User.FindFirst("nome")?.Value ?? auth.User.Identity?.Name)</h2>
+                <h2 class="hero-greeting">@(auth.User.FindFirst("nome")?.Value ?? auth.User.Identity?.Name)</h2>
             </Authorized>
         </AuthorizeView>
 
         <p class="hero-eyebrow">Personal Trainer · Chinesiologo Sportivo</p>
-        <h1 class="hero-title">Migliora il tuo <span class="hero-accent">benessere</span>!</h1>
+        <h1 class="hero-title">Migliora il tuo<br /><em>benessere</em></h1>
         <p class="hero-lead">Scopri un percorso personalizzato per migliorare la tua forma fisica con consulenze personalizzate e massaggi mirati.</p>
 
         <div class="hero-actions">
-            <button type="button" class="btn btn-warning btn-lg" @onclick="Scorri">Scopri i servizi</button>
-            <a class="btn btn-outline-hero btn-lg" href="/creaprenotazione">Prenota una consulenza</a>
+            <button type="button" class="btn btn-primary btn-lg" @onclick="Scorri">Scopri i servizi</button>
+            <a class="btn btn-ghost btn-lg" href="/creaprenotazione">Prenota una consulenza</a>
         </div>
-    </div>
 
-    <span class="hero-scroll" aria-hidden="true">
-        <i class="fas fa-chevron-down"></i>
-    </span>
+        <span class="hero-scroll" aria-hidden="true">
+            <i class="fas fa-arrow-down"></i>
+        </span>
+    </div>
 </header>
 
 @code {
