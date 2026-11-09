@@ -1,4 +1,4 @@
-@page "/creaprenotazione"
+﻿@page "/creaprenotazione"
 @attribute [Authorize]
 @inject ServizioService ServiziSvc
 @inject IndirizzoService IndirizziSvc
@@ -21,30 +21,55 @@
         <MudAlert Severity="Severity.Error" Class="mb-4" Style="white-space: pre-line;">@error</MudAlert>
     }
 
-    <MudDatePicker Editable="true" Date="dataSelezionata" DateChanged="OnDataChangedAsync" Label="Seleziona la Data" Color="Color.Primary" Class="mb-4" Required="true" />
+    @if (giorniRicevimento.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            Nessun giorno di ricevimento è configurato negli studi: contatta lo studio per fissare un appuntamento.
+        </MudAlert>
+    }
+    else if (!tuttiIGiorniDisponibili)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            Il calendario abilita solo i giorni di ricevimento degli studi: <strong>@string.Join(", ", nomiGiorniStudio)</strong>.
+            Gli altri giorni non sono selezionabili.
+        </MudAlert>
+    }
+
+    <MudDatePicker Editable="true"
+                   Date="dataSelezionata"
+                   DateChanged="OnDataChangedAsync"
+                   Label="Seleziona la Data"
+                   Color="Color.Primary"
+                   Class="mb-4"
+                   Required="true"
+                   MinDate="dataMinima"
+                   FirstDayOfWeek="DayOfWeek.Monday"
+                   DateFormat="dd/MM/yyyy"
+                   IsDateDisabledFunc="GiornoNonSelezionabile"
+                   AdditionalDateClassesFunc="ClasseGiorno" />
 
     @if (isStaff)
     {
-        <MudSelect T="long" Label="Seleziona un utente" @bind-Value="utenteSelezionato" Class="mb-4">
+        <MudSelect T="long?" Label="Seleziona un utente" @bind-Value="utenteSelezionato" Class="mb-4">
             @foreach (var utente in utenti)
             {
-                <MudSelectItem T="long" Value="@utente.Id">@utente.Nome @utente.Cognome</MudSelectItem>
+                <MudSelectItem T="long?" Value="@utente.Id">@utente.Nome @utente.Cognome</MudSelectItem>
             }
         </MudSelect>
     }
 
-    <MudSelect T="long" Label="Seleziona un Servizio" Value="servizioSelezionato"
+    <MudSelect T="long?" Label="Seleziona un Servizio" Value="servizioSelezionato"
                ValueChanged="OnServizioChangedAsync" Class="mb-4" Required="true">
         @foreach (var servizio in servizi)
         {
-            <MudSelectItem T="long" Value="@servizio.Id">@servizio.NomeServizio - Durata: @servizio.Durata minuti</MudSelectItem>
+            <MudSelectItem T="long?" Value="@servizio.Id">@servizio.NomeServizio - Durata: @servizio.Durata minuti</MudSelectItem>
         }
     </MudSelect>
 
-    <MudSelect T="long" Label="Seleziona un indirizzo" @bind-Value="indirizzoSelezionato" Class="mb-4" Required="true">
+    <MudSelect T="long?" Label="Seleziona un indirizzo" @bind-Value="indirizzoSelezionato" Class="mb-4" Required="true">
         @foreach (var indirizzo in indirizziFiltrati)
         {
-            <MudSelectItem T="long" Value="@indirizzo.Id">@indirizzo.NomeStudio - @indirizzo.IndirizzoCompleto</MudSelectItem>
+            <MudSelectItem T="long?" Value="@indirizzo.Id">@indirizzo.NomeStudio - @indirizzo.IndirizzoCompleto</MudSelectItem>
         }
     </MudSelect>
 
@@ -66,7 +91,11 @@
 </MudContainer>
 
 @code {
-    private static readonly string[] GiorniSettimana = { "LUNEDI", "MARTEDI", "MERCOLEDI", "GIOVEDI", "VENERDI", "SABATO" };
+    private static readonly string[] GiorniSettimana = GiorniStudio.Settimana;
+
+    private HashSet<DayOfWeek> giorniRicevimento = new();
+    private readonly List<string> nomiGiorniStudio = new();
+    private readonly DateTime dataMinima = DateTime.Today;
 
     private List<Servizio> servizi = new();
     private List<Indirizzo> indirizzi = new();
@@ -75,14 +104,17 @@
     private List<DateTime> orari = new();
 
     private DateTime? dataSelezionata;
-    private long servizioSelezionato;
-    private long indirizzoSelezionato;
-    private long utenteSelezionato;
+    private long? servizioSelezionato;
+    private long? indirizzoSelezionato;
+    private long? utenteSelezionato;
     private string? orarioSelezionato;
     private string? note;
     private string? error;
     private bool isStaff;
     private bool salvando;
+
+    /// <summary>Vero quando gli studi ricevono tutti i giorni della settimana lavorativa.</summary>
+    private bool tuttiIGiorniDisponibili => giorniRicevimento.Count >= GiorniSettimana.Length;
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,11 +123,44 @@
 
         servizi = await ServiziSvc.ElencaAsync();
         indirizzi = await IndirizziSvc.ElencaAsync();
+        CalcolaGiorniRicevimento();
+
         if (isStaff)
         {
             utenti = await UtentiSvc.ElencaAsync();
         }
     }
+
+    /// <summary>
+    /// Ricava i giorni in cui almeno uno studio riceve: sono gli unici
+    /// selezionabili nel calendario di prenotazione.
+    /// </summary>
+    private void CalcolaGiorniRicevimento()
+    {
+        giorniRicevimento.Clear();
+        nomiGiorniStudio.Clear();
+
+        giorniRicevimento = GiorniStudio.DaStudi(indirizzi);
+
+        foreach (var giorno in giorniRicevimento.OrderBy(g => (int)g))
+        {
+            nomiGiorniStudio.Add(GiorniStudio.NomeItaliano(giorno));
+        }
+    }
+
+    /// <summary>Giorni passati o senza ricevimento non sono selezionabili.</summary>
+    private bool GiornoNonSelezionabile(DateTime data)
+    {
+        if (data.Date < dataMinima.Date)
+        {
+            return true;
+        }
+
+        return giorniRicevimento.Count == 0 || !giorniRicevimento.Contains(data.DayOfWeek);
+    }
+
+    /// <summary>Classe usata dal calendario per evidenziare i giorni di ricevimento.</summary>
+    private string ClasseGiorno(DateTime data) => GiornoNonSelezionabile(data) ? string.Empty : "giorno-ricevimento";
 
     private async Task OnDataChangedAsync(DateTime? value)
     {
@@ -104,7 +169,7 @@
         await CaricaOrariAsync();
     }
 
-    private async Task OnServizioChangedAsync(long value)
+    private async Task OnServizioChangedAsync(long? value)
     {
         servizioSelezionato = value;
         await CaricaOrariAsync();
@@ -115,12 +180,12 @@
         orari = new List<DateTime>();
         orarioSelezionato = null;
 
-        if (dataSelezionata is not null && servizioSelezionato > 0)
+        if (dataSelezionata is not null && servizioSelezionato is > 0)
         {
             try
             {
                 error = null;
-                orari = await PrenotazioniSvc.CalcolaOrariDisponibiliAsync(DateOnly.FromDateTime(dataSelezionata.Value), servizioSelezionato);
+                orari = await PrenotazioniSvc.CalcolaOrariDisponibiliAsync(DateOnly.FromDateTime(dataSelezionata.Value), servizioSelezionato.Value);
             }
             catch (Exception ex)
             {
@@ -131,7 +196,7 @@
 
     private void FiltraIndirizzi()
     {
-        indirizzoSelezionato = 0;
+        indirizzoSelezionato = null;
         indirizziFiltrati = new List<Indirizzo>();
 
         if (dataSelezionata is null)
@@ -139,20 +204,16 @@
             return;
         }
 
-        var indice = (int)dataSelezionata.Value.DayOfWeek - 1;
-        if (indice < 0 || indice >= GiorniSettimana.Length)
-        {
-            return;
-        }
-
-        indirizziFiltrati = indirizzi.Where(i => i.Giorni.Contains(GiorniSettimana[indice])).ToList();
+        indirizziFiltrati = indirizzi
+            .Where(i => GiorniStudio.StudioAperto(i, dataSelezionata.Value.DayOfWeek))
+            .ToList();
     }
 
     private async Task CreaAsync()
     {
         error = null;
 
-        if (dataSelezionata is null || servizioSelezionato == 0 || indirizzoSelezionato == 0 || string.IsNullOrWhiteSpace(orarioSelezionato))
+        if (dataSelezionata is null || servizioSelezionato is null or 0 || indirizzoSelezionato is null or 0 || string.IsNullOrWhiteSpace(orarioSelezionato))
         {
             error = "Compila tutti i campi obbligatori.";
             return;
@@ -171,10 +232,10 @@
             var actor = ClaimsPrincipalFactory.ToAppUser(state.User) ?? throw new InvalidOperationException("Utente non autenticato");
 
             await PrenotazioniSvc.CreaAsync(
-                isStaff && utenteSelezionato > 0 ? utenteSelezionato : null,
-                servizioSelezionato,
+                isStaff && utenteSelezionato is > 0 ? utenteSelezionato : null,
+                servizioSelezionato.Value,
                 DateOnly.FromDateTime(dataSelezionata.Value).ToDateTime(ora),
-                indirizzoSelezionato,
+                indirizzoSelezionato.Value,
                 note,
                 actor);
 

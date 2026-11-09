@@ -98,7 +98,25 @@ window.asCoachScrollTo = function (id) {
         }
     }
 
-    const top = sezione.getBoundingClientRect().top + window.scrollY - offset;
+    const rettangolo = sezione.getBoundingClientRect();
+    const spazio = window.innerHeight - offset;
+    const carte = [...sezione.querySelectorAll(".fixedCard")];
+
+    // Contenuto utile: dall'inizio della sezione all'ultima card.
+    const basso = carte.length
+        ? Math.max(...carte.map((carta) => carta.getBoundingClientRect().bottom))
+        : rettangolo.bottom;
+    const altezza = Math.min(rettangolo.height, basso - rettangolo.top);
+
+    let top;
+    if (altezza <= spazio) {
+        // Tutto visibile: centra titolo e card nello schermo.
+        top = rettangolo.top + window.scrollY - offset - (spazio - altezza) / 2;
+    } else {
+        // Sezione più alta dello schermo: allinea il fondo delle card con un margine.
+        top = basso + window.scrollY - spazio + 16;
+    }
+
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
 };
 
@@ -187,3 +205,49 @@ window.asCoachSearchPlace = function (query) {
         cerca();
     });
 };
+
+// ---------------------------------------------------------------------------
+// Scadenza della sessione per inattività.
+// Dopo 30 minuti senza interazioni l'utente viene sloggato e riportato al
+// login: la pagina viene ricaricata per chiudere anche il circuito Blazor.
+// ---------------------------------------------------------------------------
+(function () {
+    var MINUTI_INATTIVITA = 30;
+    var timer = null;
+
+    function utenteAutenticato() {
+        return !!document.querySelector('form[action="/auth/logout"]');
+    }
+
+    function disconnetti() {
+        if (!utenteAutenticato()) {
+            return;
+        }
+
+        fetch("/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        })
+            .catch(function () { /* anche se la chiamata fallisce, torniamo al login */ })
+            .then(function () {
+                window.location.replace("/login?timeout=1");
+            });
+    }
+
+    function riavvia() {
+        window.clearTimeout(timer);
+        if (!utenteAutenticato()) {
+            return;
+        }
+        timer = window.setTimeout(disconnetti, MINUTI_INATTIVITA * 60 * 1000);
+    }
+
+    ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "wheel", "focus"].forEach(function (evento) {
+        window.addEventListener(evento, riavvia, { passive: true });
+    });
+
+    // Ricalcola anche quando cambia pagina (enhanced navigation di Blazor).
+    document.addEventListener("blazor:enhancedload", riavvia);
+    riavvia();
+})();

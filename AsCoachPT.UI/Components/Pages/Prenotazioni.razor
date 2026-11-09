@@ -1,4 +1,4 @@
-@page "/prenotazioni"
+﻿@page "/prenotazioni"
 @attribute [Authorize]
 @inject PrenotazioneService PrenotazioniSvc
 @inject ServizioService ServiziSvc
@@ -59,7 +59,24 @@
             <MudText Typo="Typo.h6">Modifica Prenotazione</MudText>
         </TitleContent>
         <DialogContent>
-            <MudDatePicker Editable="true" @bind-Date="dataModifica" Label="Nuova data" Color="Color.Primary" Class="mb-4" />
+            @if (giorniRicevimento.Count > 0 && giorniRicevimento.Count < GiorniSettimana.Length)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    Sono selezionabili solo i giorni di ricevimento: <strong>@string.Join(", ", nomiGiorniStudio)</strong>.
+                </MudAlert>
+            }
+
+            <MudDatePicker Editable="true"
+                           Date="dataModifica"
+                           DateChanged="OnDataModificaChanged"
+                           Label="Nuova data"
+                           Color="Color.Primary"
+                           Class="mb-4"
+                           MinDate="dataMinima"
+                           FirstDayOfWeek="DayOfWeek.Monday"
+                           DateFormat="dd/MM/yyyy"
+                           IsDateDisabledFunc="GiornoNonSelezionabile"
+                           AdditionalDateClassesFunc="ClasseGiorno" />
             <MudTimePicker Editable="true" @bind-Time="oraModifica" Label="Nuova ora" Color="Color.Primary" Class="mb-4" />
             <MudSelect T="long" Label="Servizio" @bind-Value="servizioModifica" Class="mb-4">
                 @foreach (var servizio in servizi)
@@ -68,11 +85,15 @@
                 }
             </MudSelect>
             <MudSelect T="long" Label="Indirizzo" @bind-Value="indirizzoModifica" Class="mb-4">
-                @foreach (var indirizzo in indirizzi)
+                @foreach (var indirizzo in indirizziModifica)
                 {
                     <MudSelectItem T="long" Value="@indirizzo.Id">@indirizzo.NomeStudio - @indirizzo.IndirizzoCompleto</MudSelectItem>
                 }
             </MudSelect>
+            @if (indirizziModifica.Count == 0)
+            {
+                <MudText Typo="Typo.caption" Class="mb-4">Nessuno studio riceve nel giorno selezionato.</MudText>
+            }
             <MudTextField T="string" Label="Note" @bind-Value="noteModifica" Lines="3" Variant="Variant.Outlined" />
             @if (!string.IsNullOrWhiteSpace(erroreModifica))
             {
@@ -104,6 +125,13 @@
     private List<Riga> Righe = new();
     private List<Servizio> servizi = new();
     private List<Indirizzo> indirizzi = new();
+    private List<Indirizzo> indirizziModifica = new();
+
+    private static readonly string[] GiorniSettimana = GiorniStudio.Settimana;
+    private readonly List<string> nomiGiorniStudio = new();
+    private HashSet<DayOfWeek> giorniRicevimento = new();
+    private readonly DateTime dataMinima = DateTime.Today;
+
     private bool loading = true;
     private bool isStaff;
     private bool salvando;
@@ -159,8 +187,20 @@
 
     private long actorId;
 
-    private void ApriModifica(Prenotazione prenotazione)
+    /// <summary>
+    /// Apre il dialogo di modifica rileggendo gli studi, così i giorni di
+    /// ricevimento sono sempre allineati alle ultime impostazioni.
+    /// </summary>
+    private async Task ApriModifica(Prenotazione prenotazione)
     {
+        indirizzi = await IndirizziSvc.ElencaAsync();
+        giorniRicevimento = GiorniStudio.DaStudi(indirizzi);
+        nomiGiorniStudio.Clear();
+        foreach (var giorno in giorniRicevimento.OrderBy(g => (int)g))
+        {
+            nomiGiorniStudio.Add(GiorniStudio.NomeItaliano(giorno));
+        }
+
         idInModifica = prenotazione.Id;
         dataModifica = prenotazione.DataOra.Date;
         oraModifica = prenotazione.DataOra.TimeOfDay;
@@ -168,8 +208,49 @@
         indirizzoModifica = prenotazione.IndirizzoId;
         noteModifica = prenotazione.Note;
         erroreModifica = null;
+        AggiornaIndirizziModifica();
         modaleAperta = true;
     }
+
+    /// <summary>Aggiorna il calendario del dialogo quando cambia la data.</summary>
+    private void OnDataModificaChanged(DateTime? data)
+    {
+        dataModifica = data;
+        AggiornaIndirizziModifica();
+    }
+
+    /// <summary>Elenca solo gli studi che ricevono nel giorno scelto.</summary>
+    private void AggiornaIndirizziModifica()
+    {
+        if (dataModifica is null)
+        {
+            indirizziModifica = indirizzi.ToList();
+            return;
+        }
+
+        indirizziModifica = indirizzi
+            .Where(i => GiorniStudio.StudioAperto(i, dataModifica.Value.DayOfWeek))
+            .ToList();
+
+        if (indirizziModifica.All(i => i.Id != indirizzoModifica))
+        {
+            indirizzoModifica = 0;
+        }
+    }
+
+    /// <summary>Giorni passati o senza ricevimento non sono selezionabili.</summary>
+    private bool GiornoNonSelezionabile(DateTime data)
+    {
+        if (data.Date < dataMinima.Date)
+        {
+            return true;
+        }
+
+        return giorniRicevimento.Count == 0 || !giorniRicevimento.Contains(data.DayOfWeek);
+    }
+
+    /// <summary>Classe usata dal calendario per evidenziare i giorni di ricevimento.</summary>
+    private string ClasseGiorno(DateTime data) => GiornoNonSelezionabile(data) ? string.Empty : "giorno-ricevimento";
 
     private async Task SalvaModificaAsync()
     {

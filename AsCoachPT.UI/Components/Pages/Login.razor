@@ -11,6 +11,10 @@
             {
                 <div class="alert alert-success">Registrazione riuscita! Puoi ora effettuare il login.</div>
             }
+            @if (Timeout == 1)
+            {
+                <div class="alert alert-session">La sessione è scaduta dopo 30 minuti di inattività. Effettua di nuovo il login.</div>
+            }
             @if (Error == 1)
             {
                 <div class="alert alert-danger">Errore durante il login: credenziali non valide</div>
@@ -37,4 +41,7 @@
 
     [SupplyParameterFromQuery(Name = "registered")]
     public int? Registered { get; set; }
+
+    [SupplyParameterFromQuery(Name = "timeout")]
+    public int? Timeout { get; set; }
 }

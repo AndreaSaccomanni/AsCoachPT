@@ -1,4 +1,4 @@
-using AsCoachPT.Application.Models;
+﻿using AsCoachPT.Application.Models;
 using AsCoachPT.Application.Repositories;
 using AsCoachPT.Application.Services;
 using AsCoachPT.Domain.Models;
@@ -63,6 +63,11 @@ public sealed class PrenotazioneService(
         var indirizzo = await indirizzi.TrovaPerIdAsync(indirizzoId, tokenAnnullamento)
             ?? throw new InvalidOperationException("Indirizzo non trovato");
 
+        if (!indirizzo.Attivo)
+        {
+            throw new InvalidOperationException("Lo studio selezionato non è attivo: scegli un altro indirizzo.");
+        }
+
         dataOra = DateTime.SpecifyKind(dataOra, DateTimeKind.Unspecified);
         var durata = servizio.Durata;
         var finePrenotazione = dataOra.AddMinutes(durata);
@@ -77,6 +82,8 @@ public sealed class PrenotazioneService(
         {
             throw new InvalidOperationException(" Non si possono prenotare appuntamenti la domenica ");
         }
+
+        VerificaGiornoDiRicevimento(indirizzo, dataOra);
 
         if (dataOra.DayOfWeek == DayOfWeek.Saturday && TimeOnly.FromDateTime(finePrenotazione) > ChiusuraSabato)
         {
@@ -244,6 +251,14 @@ public sealed class PrenotazioneService(
                 ?? throw new InvalidOperationException("Indirizzo non trovato");
         }
 
+        // Data e studio sono ora quelli definitivi: controlliamo il giorno di ricevimento.
+        if (!prenotazione.Indirizzo.Attivo)
+        {
+            throw new InvalidOperationException("Lo studio selezionato non è attivo: scegli un altro indirizzo.");
+        }
+
+        VerificaGiornoDiRicevimento(prenotazione.Indirizzo, prenotazione.DataOra);
+
         await unitOfWork.SalvaModificheAsync(tokenAnnullamento);
 
         var contenuto = "Ciao " + prenotazione.Utente.Nome + ",\n\n"
@@ -317,6 +332,22 @@ public sealed class PrenotazioneService(
         }
 
         return orariDisponibili;
+    }
+
+    /// <summary>
+    /// Blocca la prenotazione se lo studio non riceve in quel giorno
+    /// (i giorni di ricevimento sono configurati per ogni studio).
+    /// </summary>
+    private static void VerificaGiornoDiRicevimento(Indirizzo studio, DateTime dataOra)
+    {
+        if (GiorniStudio.StudioAperto(studio, dataOra.DayOfWeek))
+        {
+            return;
+        }
+
+        var giorni = GiorniStudio.ElencoLeggibile(GiorniStudio.DaStudi(new[] { studio }));
+        throw new InvalidOperationException(
+            $"Lo studio {studio.NomeStudio} non riceve il {GiorniStudio.NomeItaliano(dataOra.DayOfWeek)}. Giorni di ricevimento: {giorni}.");
     }
 
     private async Task<bool> IsSovrapposizioneAsync(DateTime inizio, DateTime fine, long? prenotazioneId, CancellationToken tokenAnnullamento)

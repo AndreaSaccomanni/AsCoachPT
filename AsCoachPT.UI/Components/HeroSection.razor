@@ -3,7 +3,19 @@
 @using System.Security.Claims
 
 <header class="hero-section">
-    <div class="hero-copy">
+    <picture class="hero-picture">
+        <source media="(max-width: 767.98px)" srcset="assets/images/sfondoHome-mobile.webp" />
+        <img class="hero-media"
+             src="assets/images/sfondoHome-1920.webp"
+             srcset="assets/images/sfondoHome-1280.webp 1280w, assets/images/sfondoHome-1920.webp 1920w"
+             sizes="100vw"
+             alt=""
+             aria-hidden="true"
+             fetchpriority="high"
+             decoding="async" />
+    </picture>
+
+    <div class="hero-content">
         <AuthorizeView>
             <Authorized Context="auth">
                 <p class="hero-eyebrow">Bentornato</p>
@@ -12,7 +24,7 @@
         </AuthorizeView>
 
         <p class="hero-eyebrow">Personal Trainer · Chinesiologo Sportivo</p>
-        <h1 class="hero-title">Migliora il tuo<br /><em>benessere</em>!</h1>
+        <h1 class="hero-title">Migliora il tuo<br /><em>benessere</em></h1>
         <p class="hero-lead">Scopri un percorso personalizzato per migliorare la tua forma fisica con consulenze personalizzate e massaggi mirati.</p>
 
         <div class="hero-actions">
@@ -23,17 +35,6 @@
         <span class="hero-scroll" aria-hidden="true">
             <i class="fas fa-arrow-down"></i>
         </span>
-    </div>
-
-    <div class="hero-visual">
-        <img class="hero-media"
-             src="assets/images/sfondoHome-1920.webp"
-             srcset="assets/images/sfondoHome-1280.webp 1280w, assets/images/sfondoHome-1920.webp 1920w"
-             sizes="(max-width: 991.98px) 100vw, 50vw"
-             alt=""
-             aria-hidden="true"
-             fetchpriority="high"
-             decoding="async" />
     </div>
 </header>
 

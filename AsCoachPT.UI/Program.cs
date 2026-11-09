@@ -37,10 +37,17 @@ creatoreApp.Services.AddAuthentication(CookieAuthenticationDefaults.Authenticati
         opzioni.Cookie.Name = "ascoach.auth";
         opzioni.Cookie.HttpOnly = true;
         opzioni.Cookie.SameSite = SameSiteMode.Lax;
+
+        // Sessione breve: dopo 30 minuti di inattività l'utente deve rifare il login.
         opzioni.SlidingExpiration = true;
-        opzioni.ExpireTimeSpan = TimeSpan.FromDays(7);
+        opzioni.ExpireTimeSpan = TimeSpan.FromMinutes(30);
     });
 creatoreApp.Services.AddAuthorization();
+
+// Date e calendari in italiano (etichette dei picker MudBlazor).
+var culturaItaliana = new System.Globalization.CultureInfo("it-IT");
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culturaItaliana;
+System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culturaItaliana;
 
 var applicazioneWeb = creatoreApp.Build();
 
@@ -161,6 +168,7 @@ using (var ambito = applicazioneWeb.Services.CreateScope())
 {
     var contesto = ambito.ServiceProvider.GetRequiredService<AsCoachDbContext>();
     await contesto.Database.EnsureCreatedAsync();
+    await DatabaseSchema.AssicuraAsync(contesto);
     DbSeeder.Seed(contesto);
 }
 

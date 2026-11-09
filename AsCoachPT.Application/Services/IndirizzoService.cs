@@ -9,9 +9,30 @@ public sealed class IndirizzoService(
     IPrenotazioneRepository prenotazioni,
     IUnitOfWork unitOfWork)
 {
-    /// <summary>Restituisce tutti gli indirizzi in ordine di inserimento.</summary>
-    public Task<List<Indirizzo>> ElencaAsync(CancellationToken tokenAnnullamento = default) =>
-        indirizzi.ElencaAsync(tokenAnnullamento);
+    /// <summary>
+    /// Restituisce gli indirizzi in ordine di inserimento. Di default solo gli
+    /// attivi: quelli disabilitati non compaiono nelle prenotazioni.
+    /// </summary>
+    public Task<List<Indirizzo>> ElencaAsync(bool includiDisabilitati = false, CancellationToken tokenAnnullamento = default) =>
+        indirizzi.ElencaAsync(includiDisabilitati, tokenAnnullamento);
+
+    /// <summary>
+    /// Abilita o disabilita uno studio. Disabilitandolo i giorni tornano liberi
+    /// (e possono essere assegnati a un altro indirizzo).
+    /// </summary>
+    public async Task<Indirizzo> ImpostaAttivoAsync(long id, bool attivo, CancellationToken tokenAnnullamento = default)
+    {
+        var indirizzo = await TrovaPerIdAsync(id, tokenAnnullamento);
+        indirizzo.Attivo = attivo;
+
+        if (!attivo)
+        {
+            indirizzo.GiorniDisponibili = string.Empty;
+        }
+
+        await unitOfWork.SalvaModificheAsync(tokenAnnullamento);
+        return indirizzo;
+    }
 
     /// <summary>Recupera un indirizzo o segnala che non esiste.</summary>
     public async Task<Indirizzo> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
@@ -31,9 +52,13 @@ public sealed class IndirizzoService(
     /// <summary>Aggiorna un indirizzo mantenendo un solo studio per giorno della settimana.</summary>
     public async Task<Indirizzo> AggiornaAsync(long id, Indirizzo modifiche, CancellationToken tokenAnnullamento = default)
     {
-        await RimuoviGiorniGiaAssegnatiAsync(modifiche.Giorni, id, tokenAnnullamento);
-
         var indirizzo = await TrovaPerIdAsync(id, tokenAnnullamento);
+
+        if (indirizzo.Attivo)
+        {
+            await RimuoviGiorniGiaAssegnatiAsync(modifiche.Giorni, id, tokenAnnullamento);
+        }
+
         indirizzo.Via = modifiche.Via;
         indirizzo.NumeroCivico = modifiche.NumeroCivico;
         indirizzo.Citta = modifiche.Citta;
@@ -41,7 +66,7 @@ public sealed class IndirizzoService(
         indirizzo.NomeStudio = modifiche.NomeStudio;
         indirizzo.Latitudine = modifiche.Latitudine;
         indirizzo.Longitudine = modifiche.Longitudine;
-        indirizzo.GiorniDisponibili = Normalizza(modifiche.Giorni);
+        indirizzo.GiorniDisponibili = indirizzo.Attivo ? Normalizza(modifiche.Giorni) : string.Empty;
 
         await unitOfWork.SalvaModificheAsync(tokenAnnullamento);
         return indirizzo;
@@ -78,9 +103,14 @@ public sealed class IndirizzoService(
             return;
         }
 
-        var tuttiIndirizzi = await indirizzi.ElencaAsync(tokenAnnullamento);
+        var tuttiIndirizzi = await indirizzi.ElencaAsync(true, tokenAnnullamento);
         foreach (var altro in tuttiIndirizzi)
         {
+            if (!altro.Attivo)
+            {
+                continue;
+            }
+
             if (idIndirizzoDaAggiornare is not null && altro.Id == idIndirizzoDaAggiornare)
             {
                 continue;
