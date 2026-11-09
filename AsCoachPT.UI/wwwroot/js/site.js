@@ -28,11 +28,40 @@
         }, { passive: true });
     }
 
-    // Comparsa progressiva degli elementi mentre si scorre: le classi sono
-    // aggiunte dopo l'idratazione di Blazor, quindi si ri-osserva a ogni
-    // aggiornamento del DOM. Se il browser non supporta IntersectionObserver
-    // il documento torna visibile per intero.
+    // Comparsa progressiva degli elementi mentre si scorre. Blazor sostituisce
+    // il DOM a ogni navigazione: oltre all'osservazione iniziale serve un
+    // MutationObserver, altrimenti tornando sulla home le sezioni restano a
+    // opacity 0. Se manca IntersectionObserver il documento torna visibile.
     const selettoreReveal = ".reveal, .card-wrapper, .service-row, .info-panel, .form-card, .section-head";
+
+    let osservatoreReveal = null;
+    let osservazioneProgrammata = false;
+
+    function osservaReveal() {
+        osservazioneProgrammata = false;
+
+        if (!osservatoreReveal) {
+            return;
+        }
+
+        // Riparte da zero: elimina i nodi rimossi dalla pagina e osserva i nuovi.
+        osservatoreReveal.disconnect();
+
+        document.querySelectorAll(selettoreReveal).forEach((el) => {
+            if (el.dataset.revealed !== "true") {
+                osservatoreReveal.observe(el);
+            }
+        });
+    }
+
+    function programmaOsservazione() {
+        if (osservazioneProgrammata) {
+            return;
+        }
+
+        osservazioneProgrammata = true;
+        requestAnimationFrame(osservaReveal);
+    }
 
     function initReveal() {
         if (typeof IntersectionObserver === "undefined") {
@@ -40,30 +69,33 @@
             return;
         }
 
+        if (osservatoreReveal) {
+            programmaOsservazione();
+            return;
+        }
+
         window.__asCoachRevealAttivo = true;
 
-        const observer = new IntersectionObserver((entries) => {
+        osservatoreReveal = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
                     entry.target.dataset.revealed = "true";
-                    observer.unobserve(entry.target);
+                    osservatoreReveal.unobserve(entry.target);
                 }
             });
         }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
 
-        const osserva = () => {
-            document.querySelectorAll(selettoreReveal).forEach((el) => {
-                if (el.dataset.revealed !== "true") {
-                    observer.observe(el);
-                }
-            });
-        };
+        osservaReveal();
 
-        osserva();
+        // Blazor aggiunge o sostituisce nodi durante le navigazioni interne.
+        new MutationObserver(programmaOsservazione).observe(document.body, {
+            childList: true,
+            subtree: true
+        });
 
         // Dopo l'idratazione alcune parti possono essere riscritte da Blazor.
-        setTimeout(osserva, 400);
-        setTimeout(osserva, 1400);
+        setTimeout(programmaOsservazione, 400);
+        setTimeout(programmaOsservazione, 1400);
     }
 
     function boot() {
@@ -77,8 +109,8 @@
         boot();
     }
 
-    // Blazor sostituisce il DOM dopo l'interattività: ripeti l'osservazione.
-    document.addEventListener("blazor:enhancedload", initReveal);
+    // Navigazione migliorata di Blazor: ricalcola subito gli elementi da osservare.
+    document.addEventListener("blazor:enhancedload", programmaOsservazione);
 })();
 
 // Scroll fluido verso una sezione. Usa un offset solo se la navbar è
