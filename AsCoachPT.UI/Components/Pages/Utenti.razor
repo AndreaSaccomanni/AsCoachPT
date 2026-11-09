@@ -50,9 +50,10 @@
         </MudTable>
     }
 
-    <MudDialog @bind-Visible="modaleModificaAperta">
+    <MudDialog @bind-Visible="modaleModificaAperta" Options="opzioniDialog">
         <TitleContent><MudText Typo="Typo.h6">Modifica Utente</MudText></TitleContent>
         <DialogContent>
+            <div class="dialog-form">
             @if (!string.IsNullOrWhiteSpace(erroreModale))
             {
                 <MudAlert Severity="Severity.Error" Class="mb-4">@erroreModale</MudAlert>
@@ -67,6 +68,7 @@
                 <MudSelectItem T="string" Value="@nameof(UserRole.PERSONAL_TRAINER)">PERSONAL_TRAINER</MudSelectItem>
                 <MudSelectItem T="string" Value="@nameof(UserRole.USER)">USER</MudSelectItem>
             </MudSelect>
+            </div>
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="() => modaleModificaAperta = false">Chiudi</MudButton>
@@ -74,9 +76,10 @@
         </DialogActions>
     </MudDialog>
 
-    <MudDialog @bind-Visible="modaleNuovoAperta">
+    <MudDialog @bind-Visible="modaleNuovoAperta" Options="opzioniDialog">
         <TitleContent><MudText Typo="Typo.h6">Aggiungi Nuovo Utente</MudText></TitleContent>
         <DialogContent>
+            <div class="dialog-form">
             @if (!string.IsNullOrWhiteSpace(erroreModale))
             {
                 <MudAlert Severity="Severity.Error" Class="mb-4">@erroreModale</MudAlert>
@@ -92,6 +95,7 @@
                 <MudSelectItem T="string" Value="@nameof(UserRole.PERSONAL_TRAINER)">PERSONAL_TRAINER</MudSelectItem>
                 <MudSelectItem T="string" Value="@nameof(UserRole.USER)">USER</MudSelectItem>
             </MudSelect>
+            </div>
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="() => modaleNuovoAperta = false">Annulla</MudButton>
@@ -125,6 +129,12 @@
     private bool confermaAperta;
     private string? erroreModale;
     private long idDaEliminare;
+
+    private readonly DialogOptions opzioniDialog = new()
+    {
+        FullWidth = true,
+        MaxWidth = MaxWidth.Large
+    };
 
     protected override async Task OnInitializedAsync()
     {

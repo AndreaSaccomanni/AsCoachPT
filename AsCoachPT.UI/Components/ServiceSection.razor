@@ -14,35 +14,37 @@
         <p class="section-sub">Percorsi di allenamento, massaggio e recupero costruiti sulle tue esigenze.</p>
     </div>
 
-    <div class="row g-4 justify-content-center">
+    <div class="service-list">
         @foreach (var servizio in SchedeServizi)
         {
-            <div class="col-lg-3 col-md-6 col-12 d-flex card-wrapper">
-                <article class="card fixedCard flex-grow-1">
-                    <img class="card-img-top"
-                         src="@servizio.ImmagineSrc"
+            <article class="service-row @(aperto?.Id == servizio.Id ? "is-active" : "")">
+                <span class="service-index" aria-hidden="true">@servizio.Id.ToString("00")</span>
+
+                <div class="service-copy">
+                    <h3 class="service-title" id="servizio-titolo-@servizio.Id">@servizio.Titolo</h3>
+                    <p class="service-desc">@servizio.Descrizione</p>
+                    <button type="button"
+                            class="service-link"
+                            aria-haspopup="@(DettagliInModale ? "dialog" : null)"
+                            aria-expanded="@(aperto?.Id == servizio.Id ? "true" : "false")"
+                            aria-controls="dettagli-servizio-@servizio.Id"
+                            @onclick="() => Apri(servizio)">
+                        @(aperto?.Id == servizio.Id ? "Nascondi dettagli" : "Scopri di più")
+                        <i class="fas @(aperto?.Id == servizio.Id ? "fa-chevron-up" : "fa-arrow-right")" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <figure class="service-media">
+                    <img src="@servizio.ImmagineSrc"
                          srcset="@servizio.ImmagineSrcset"
-                         sizes="(max-width: 767.98px) 88vw, (max-width: 991.98px) 45vw, 300px"
+                         sizes="(max-width: 767.98px) 100vw, 240px"
                          width="@servizio.ImmagineLarghezza"
                          height="@servizio.ImmagineAltezza"
                          alt="@servizio.Titolo"
                          loading="lazy"
                          decoding="async" />
-                    <div class="card-body">
-                        <h5 class="card-title">@servizio.Titolo</h5>
-                        <p class="card-text">@servizio.Descrizione</p>
-                        <button type="button"
-                                class="btn btn-servizio mt-auto"
-                                aria-haspopup="@(DettagliInModale ? "dialog" : null)"
-                                aria-expanded="@(aperto?.Id == servizio.Id ? "true" : "false")"
-                                aria-controls="dettagli-servizio-@servizio.Id"
-                                @onclick="() => Apri(servizio)">
-                            @(aperto?.Id == servizio.Id ? "Nascondi dettagli" : "Scopri di più")
-                            <i class="fas @(aperto?.Id == servizio.Id ? "fa-chevron-up" : "fa-arrow-right")" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                </article>
-            </div>
+                </figure>
+            </article>
         }
     </div>
 
