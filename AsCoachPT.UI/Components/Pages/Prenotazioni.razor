@@ -54,11 +54,12 @@
         </MudTable>
     }
 
-    <MudDialog @bind-Visible="modaleAperta">
+    <MudDialog @bind-Visible="modaleAperta" Options="opzioniDialog">
         <TitleContent>
             <MudText Typo="Typo.h6">Modifica Prenotazione</MudText>
         </TitleContent>
         <DialogContent>
+            <div class="dialog-form">
             @if (giorniRicevimento.Count > 0 && giorniRicevimento.Count < GiorniSettimana.Length)
             {
                 <MudAlert Severity="Severity.Info" Class="mb-4">
@@ -99,6 +100,7 @@
             {
                 <MudAlert Severity="Severity.Error" Class="mt-4">@erroreModifica</MudAlert>
             }
+            </div>
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="() => modaleAperta = false">Chiudi</MudButton>
@@ -145,6 +147,12 @@
     private long servizioModifica;
     private long indirizzoModifica;
     private string? noteModifica;
+
+    private readonly DialogOptions opzioniDialog = new()
+    {
+        FullWidth = true,
+        MaxWidth = MaxWidth.Large
+    };
 
     [SupplyParameterFromQuery(Name = "created")]
     public int? Created { get; set; }

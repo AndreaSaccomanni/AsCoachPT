@@ -32,7 +32,7 @@
     // aggiunte dopo l'idratazione di Blazor, quindi si ri-osserva a ogni
     // aggiornamento del DOM. Se il browser non supporta IntersectionObserver
     // il documento torna visibile per intero.
-    const selettoreReveal = ".reveal, .card-wrapper, .info-panel, .form-card, .section-head";
+    const selettoreReveal = ".reveal, .card-wrapper, .service-row, .info-panel, .form-card, .section-head";
 
     function initReveal() {
         if (typeof IntersectionObserver === "undefined") {
@@ -45,7 +45,7 @@
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    entry.target.classList.add("is-visible");
+                    entry.target.dataset.revealed = "true";
                     observer.unobserve(entry.target);
                 }
             });
@@ -53,7 +53,7 @@
 
         const osserva = () => {
             document.querySelectorAll(selettoreReveal).forEach((el) => {
-                if (!el.classList.contains("is-visible")) {
+                if (el.dataset.revealed !== "true") {
                     observer.observe(el);
                 }
             });
@@ -100,9 +100,9 @@ window.asCoachScrollTo = function (id) {
 
     const rettangolo = sezione.getBoundingClientRect();
     const spazio = window.innerHeight - offset;
-    const carte = [...sezione.querySelectorAll(".fixedCard")];
+    const carte = [...sezione.querySelectorAll(".service-row")];
 
-    // Contenuto utile: dall'inizio della sezione all'ultima card.
+    // Contenuto utile: dall'inizio della sezione all'ultima riga servizio.
     const basso = carte.length
         ? Math.max(...carte.map((carta) => carta.getBoundingClientRect().bottom))
         : rettangolo.bottom;
@@ -110,11 +110,12 @@ window.asCoachScrollTo = function (id) {
 
     let top;
     if (altezza <= spazio) {
-        // Tutto visibile: centra titolo e card nello schermo.
+        // Tutto visibile: centra titolo e righe nello schermo.
         top = rettangolo.top + window.scrollY - offset - (spazio - altezza) / 2;
     } else {
-        // Sezione più alta dello schermo: allinea il fondo delle card con un margine.
-        top = basso + window.scrollY - spazio + 16;
+        // Sezione più alta dello schermo: parti dal titolo, così le righe
+        // non vengono tagliate fuori dall'area visibile.
+        top = rettangolo.top + window.scrollY - offset;
     }
 
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
@@ -149,74 +150,246 @@ window.asCoachIsMobile = function () {
     return window.matchMedia("(max-width: 767.98px)").matches;
 };
 
-// Ricerca luogo tramite Google Places + Geocoder (parità con GestioneIndirizzi React).
-window.asCoachSearchPlace = function (query) {
-    return new Promise((resolve) => {
-        let tentativi = 0;
+// ---------------------------------------------------------------------------
+// Ricerca indirizzi: suggerimenti Google sotto l'input, dettagli del luogo
+// scelto e selezione diretta dalla mappa. Componenti e coordinate arrivano
+// sempre dallo stesso risultato Google.
+// ---------------------------------------------------------------------------
+(function () {
+    const mappeSelettore = new Map();
 
-        function cerca() {
-            if (!(window.google && google.maps && google.maps.places)) {
-                if (tentativi++ < 50) {
-                    setTimeout(cerca, 100);
-                } else {
-                    resolve(null);
+    function componente(componenti, tipo, breve) {
+        const trovato = (componenti || []).find((c) => c.types.includes(tipo));
+        return trovato ? (breve ? trovato.short_name : trovato.long_name) : "";
+    }
+
+    function risultatoDa(luogo) {
+        const componenti = luogo.address_components || [];
+        return {
+            formattedAddress: luogo.formatted_address || "",
+            via: componente(componenti, "route", false),
+            numeroCivico: componente(componenti, "street_number", false),
+            citta: componente(componenti, "locality", false)
+                || componente(componenti, "postal_town", false)
+                || componente(componenti, "administrative_area_level_3", false),
+            provincia: componente(componenti, "administrative_area_level_2", true),
+            lat: luogo.geometry.location.lat(),
+            lng: luogo.geometry.location.lng()
+        };
+    }
+
+    // Il reverse geocoding restituisce anche fermate e attività senza civico:
+    // preferisce l'indirizzo stradale più preciso, non il primo risultato.
+    function scegliPreciso(risultati) {
+        function punteggio(luogo) {
+            const tipi = luogo.types || [];
+            const componenti = luogo.address_components || [];
+            const ha = (tipo) => componenti.some((c) => c.types.includes(tipo));
+
+            if (tipi.includes("street_address")) return 0;
+            if (tipi.includes("premise")) return 1;
+            if (ha("route") && ha("street_number")) return 2;
+            if (ha("route")) return 3;
+            if (tipi.includes("establishment") || tipi.includes("point_of_interest")) return 4;
+            return 5;
+        }
+
+        return risultati.reduce(
+            (migliore, candidato) => punteggio(candidato) < punteggio(migliore) ? candidato : migliore,
+            risultati[0]);
+    }
+
+    // Restituisce fino a sei suggerimenti: la scelta resta all'utente.
+    window.asCoachPlaceSuggestions = function (query) {
+        return new Promise((resolve) => {
+            let tentativi = 0;
+
+            function cerca() {
+                if (!(window.google && google.maps && google.maps.places && google.maps.places.AutocompleteService)) {
+                    if (tentativi++ < 50) {
+                        setTimeout(cerca, 100);
+                    } else {
+                        resolve([]);
+                    }
+                    return;
                 }
+
+                const servizio = new google.maps.places.AutocompleteService();
+                servizio.getPlacePredictions(
+                    {
+                        input: query,
+                        componentRestrictions: { country: "it" },
+                        language: "it"
+                    },
+                    (previsioni, stato) => {
+                        if (stato !== "OK" || !previsioni) {
+                            resolve([]);
+                            return;
+                        }
+
+                        resolve(previsioni.slice(0, 6).map((p) => ({
+                            placeId: p.place_id,
+                            primaryText: p.structured_formatting?.main_text || p.description || "",
+                            secondaryText: p.structured_formatting?.secondary_text || ""
+                        })));
+                    }
+                );
+            }
+
+            cerca();
+        });
+    };
+
+    window.asCoachPlaceDetails = function (placeId) {
+        return new Promise((resolve) => {
+            if (!(window.google && google.maps && google.maps.places && google.maps.places.PlacesService)) {
+                resolve(null);
                 return;
             }
 
-            const service = new google.maps.places.PlacesService(document.createElement("div"));
-            service.findPlaceFromQuery(
-                { query: query, fields: ["formatted_address", "geometry", "place_id"] },
-                (results, status) => {
-                    if (status !== "OK" || !results || results.length === 0) {
+            const servizio = new google.maps.places.PlacesService(document.createElement("div"));
+            servizio.getDetails(
+                {
+                    placeId: placeId,
+                    fields: ["formatted_address", "geometry", "address_components"],
+                    language: "it"
+                },
+                (luogo, stato) => {
+                    resolve(stato === "OK" && luogo ? risultatoDa(luogo) : null);
+                }
+            );
+        });
+    };
+
+    // Usato solo per il clic sulla mappa: qui il reverse geocoding è corretto
+    // perché il punto scelto è la fonte della posizione.
+    window.asCoachReverseGeocode = function (lat, lng) {
+        return new Promise((resolve) => {
+            if (!(window.google && google.maps && google.maps.Geocoder)) {
+                resolve(null);
+                return;
+            }
+
+            new google.maps.Geocoder().geocode(
+                { location: { lat: lat, lng: lng }, region: "it" },
+                (risultati, stato) => {
+                    if (stato !== "OK" || !risultati || risultati.length === 0) {
                         resolve(null);
                         return;
                     }
 
-                    const risultato = results[0];
-                    const lat = risultato.geometry.location.lat();
-                    const lng = risultato.geometry.location.lng();
-                    const geocoder = new google.maps.Geocoder();
-
-                    geocoder.geocode({ location: { lat: lat, lng: lng } }, (res, geoStatus) => {
-                        if (geoStatus !== "OK" || !res || res.length === 0) {
-                            resolve({ formattedAddress: risultato.formatted_address, lat: lat, lng: lng });
-                            return;
-                        }
-
-                        const componenti = res[0].address_components || [];
-                        const get = (tipo, breve) =>
-                            (componenti.find((c) => c.types.includes(tipo)) || {})[breve ? "short_name" : "long_name"] || "";
-
-                        resolve({
-                            formattedAddress: risultato.formatted_address,
-                            via: get("route", false),
-                            numeroCivico: get("street_number", false),
-                            citta: get("locality", false) || get("postal_town", false) || get("administrative_area_level_3", false),
-                            provincia: get("administrative_area_level_2", true),
-                            lat: lat,
-                            lng: lng
-                        });
-                    });
+                    resolve(risultatoDa(scegliPreciso(risultati)));
                 }
             );
+        });
+    };
+
+    window.asCoachInitMapPicker = function (elementId, dotnetRef, lat, lng) {
+        return new Promise((resolve) => {
+            let tentativi = 0;
+
+            function avvia() {
+                if (!(window.google && google.maps && google.maps.Map)) {
+                    if (tentativi++ < 50) {
+                        setTimeout(avvia, 100);
+                    } else {
+                        resolve(false);
+                    }
+                    return;
+                }
+
+                const elemento = document.getElementById(elementId);
+                if (!elemento) {
+                    if (tentativi++ < 50) {
+                        setTimeout(avvia, 100);
+                    } else {
+                        resolve(false);
+                    }
+                    return;
+                }
+
+                window.asCoachDisposeMapPicker(elementId);
+
+                const coordinateValide = typeof lat === "number" && typeof lng === "number";
+                const centro = coordinateValide ? { lat: lat, lng: lng } : { lat: 42.5636, lng: 12.6427 };
+
+                const mappa = new google.maps.Map(elemento, {
+                    center: centro,
+                    zoom: coordinateValide ? 16 : 11,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                    clickableIcons: false
+                });
+
+                const indicatore = new google.maps.Marker({
+                    map: mappa,
+                    position: centro,
+                    visible: coordinateValide
+                });
+
+                mappa.addListener("click", (evento) => {
+                    const posizione = evento.latLng;
+                    indicatore.setPosition(posizione);
+                    indicatore.setVisible(true);
+
+                    window.asCoachReverseGeocode(posizione.lat(), posizione.lng()).then((risultato) => {
+                        if (risultato && dotnetRef) {
+                            dotnetRef.invokeMethodAsync("AggiornaDaMappa", risultato);
+                        }
+                    });
+                });
+
+                mappeSelettore.set(elementId, { mappa, indicatore });
+                resolve(true);
+            }
+
+            avvia();
+        });
+    };
+
+    window.asCoachSetMapPickerPosition = function (elementId, lat, lng) {
+        const selettore = mappeSelettore.get(elementId);
+        if (!selettore || typeof lat !== "number" || typeof lng !== "number") {
+            return;
         }
 
-        cerca();
-    });
-};
+        const posizione = { lat: lat, lng: lng };
+        selettore.mappa.setCenter(posizione);
+        selettore.mappa.setZoom(16);
+        selettore.indicatore.setPosition(posizione);
+        selettore.indicatore.setVisible(true);
+    };
+
+    window.asCoachDisposeMapPicker = function (elementId) {
+        const selettore = mappeSelettore.get(elementId);
+        if (!selettore) {
+            return;
+        }
+
+        google.maps.event.clearInstanceListeners(selettore.mappa);
+        selettore.indicatore.setMap(null);
+        mappeSelettore.delete(elementId);
+    };
+})();
 
 // ---------------------------------------------------------------------------
-// Scadenza della sessione per inattività.
-// Dopo 30 minuti senza interazioni l'utente viene sloggato e riportato al
-// login: la pagina viene ricaricata per chiudere anche il circuito Blazor.
+// Scadenza assoluta della sessione: 30 minuti dal login, indipendentemente
+// dalle interazioni. Il cookie di sessione sparisce alla chiusura del browser;
+// il riavvio dell'applicazione invalida comunque il cookie lato server.
 // ---------------------------------------------------------------------------
 (function () {
-    var MINUTI_INATTIVITA = 30;
+    var DURATA_SESSIONE = 30 * 60 * 1000;
     var timer = null;
+    var inizioFallback = null;
 
     function utenteAutenticato() {
         return !!document.querySelector('form[action="/auth/logout"]');
+    }
+
+    function inizioSessione() {
+        var corrispondenza = document.cookie.match(/(?:^|;\s*)ascoach\.session_start=(\d+)/);
+        return corrispondenza ? Number(corrispondenza[1]) * 1000 : null;
     }
 
     function disconnetti() {
@@ -235,19 +408,37 @@ window.asCoachSearchPlace = function (query) {
             });
     }
 
-    function riavvia() {
+    function pianifica() {
         window.clearTimeout(timer);
+
         if (!utenteAutenticato()) {
             return;
         }
-        timer = window.setTimeout(disconnetti, MINUTI_INATTIVITA * 60 * 1000);
+
+        var inizio = inizioSessione();
+        if (!inizio) {
+            if (!inizioFallback) {
+                inizioFallback = Date.now();
+            }
+            inizio = inizioFallback;
+        }
+
+        var resta = DURATA_SESSIONE - (Date.now() - inizio);
+        if (resta <= 0) {
+            disconnetti();
+            return;
+        }
+
+        timer = window.setTimeout(pianifica, resta);
     }
 
-    ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "wheel", "focus"].forEach(function (evento) {
-        window.addEventListener(evento, riavvia, { passive: true });
+    // Ricalcola dopo una navigazione Blazor o quando la scheda torna visibile.
+    document.addEventListener("blazor:enhancedload", pianifica);
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") {
+            pianifica();
+        }
     });
 
-    // Ricalcola anche quando cambia pagina (enhanced navigation di Blazor).
-    document.addEventListener("blazor:enhancedload", riavvia);
-    riavvia();
+    pianifica();
 })();

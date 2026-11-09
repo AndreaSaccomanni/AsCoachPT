@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AsCoachPT.Application.Models;
 using AsCoachPT.Application.Services;
 using AsCoachPT.Infrastructure;
@@ -12,6 +13,13 @@ using MudBlazor.Services;
 
 // Configura Blazor, autenticazione a cookie, MudBlazor e i servizi dell'applicazione.
 var creatoreApp = WebApplication.CreateBuilder(args);
+
+// Ogni avvio invalida le sessioni precedenti: fermare il debug o riavviare
+// il sito obbliga a effettuare di nuovo il login.
+var avvioSessione = Guid.NewGuid().ToString("N");
+const string ClaimAvvio = "avvio";
+const string CookieInizioSessione = "ascoach.session_start";
+var durataSessione = TimeSpan.FromMinutes(30);
 
 // Render e altri host forniscono la porta tramite variabile d'ambiente.
 var portaDaAmbiente = Environment.GetEnvironmentVariable("PORT");
@@ -37,10 +45,25 @@ creatoreApp.Services.AddAuthentication(CookieAuthenticationDefaults.Authenticati
         opzioni.Cookie.Name = "ascoach.auth";
         opzioni.Cookie.HttpOnly = true;
         opzioni.Cookie.SameSite = SameSiteMode.Lax;
+        opzioni.Cookie.IsEssential = true;
 
-        // Sessione breve: dopo 30 minuti di inattività l'utente deve rifare il login.
-        opzioni.SlidingExpiration = true;
-        opzioni.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        // Sessione assoluta: 30 minuti dal login, poi serve un nuovo accesso.
+        opzioni.ExpireTimeSpan = durataSessione;
+        opzioni.SlidingExpiration = false;
+
+        opzioni.Events = new CookieAuthenticationEvents
+        {
+            OnValidatePrincipal = async contesto =>
+            {
+                var avvio = contesto.Principal?.FindFirst(ClaimAvvio)?.Value;
+                if (!string.Equals(avvio, avvioSessione, StringComparison.Ordinal))
+                {
+                    contesto.RejectPrincipal();
+                    await contesto.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    contesto.HttpContext.Response.Cookies.Delete(CookieInizioSessione, new CookieOptions { Path = "/" });
+                }
+            }
+        };
     });
 creatoreApp.Services.AddAuthorization();
 
@@ -102,10 +125,27 @@ applicazioneWeb.MapPost("/auth/login", async (HttpContext http, UtenteService ut
         return Results.Redirect("/login?error=1");
     }
 
+    var principal = ClaimsPrincipalFactory.Crea(utente);
+    principal.Identities.First().AddClaim(new Claim(ClaimAvvio, avvioSessione));
+
     await http.SignInAsync(
         CookieAuthenticationDefaults.AuthenticationScheme,
-        ClaimsPrincipalFactory.Crea(utente),
-        new AuthenticationProperties { IsPersistent = true });
+        principal,
+        new AuthenticationProperties { IsPersistent = false });
+
+    // Cookie leggibile dal client: fa partire il conto alla rovescia assoluto
+    // di 30 minuti e sparisce alla chiusura del browser (cookie di sessione).
+    http.Response.Cookies.Append(
+        CookieInizioSessione,
+        DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+        new CookieOptions
+        {
+            HttpOnly = false,
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = http.Request.IsHttps,
+            Path = "/"
+        });
 
     return Results.Redirect("/");
 }).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
@@ -160,6 +200,7 @@ applicazioneWeb.MapPost("/auth/register", async (HttpContext http, UtenteService
 applicazioneWeb.MapPost("/auth/logout", async (HttpContext http) =>
 {
     await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    http.Response.Cookies.Delete(CookieInizioSessione, new CookieOptions { Path = "/" });
     return Results.Redirect("/");
 }).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
 

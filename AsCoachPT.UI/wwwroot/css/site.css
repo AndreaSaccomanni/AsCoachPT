@@ -362,6 +362,34 @@ h1:focus-visible {
   align-items: center;
 }
 
+.navbar-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0.8rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgba(140, 166, 140, 0.5);
+  border-radius: var(--radius-pill);
+  background: rgba(140, 166, 140, 0.12);
+  color: var(--nav-fg);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.navbar-user i {
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+.navbar-user-name {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .navbar-toggler {
   border: 0;
   padding: 0.25rem;
@@ -382,6 +410,18 @@ h1:focus-visible {
   border-radius: var(--radius-sm);
   background: #fff;
   box-shadow: var(--shadow-soft);
+}
+
+/* Sulla home la barra è trasparente: il menu aperto ha fondo bianco,
+   quindi testi e chip devono tornare scuri e leggibili. */
+.navbar-transparent .navbar-collapse.show {
+  --nav-fg: var(--ink);
+}
+
+.navbar-transparent .navbar-collapse.show .nav-link,
+.navbar-transparent .navbar-collapse.show .navbar-user {
+  color: var(--ink);
+  text-shadow: none;
 }
 
 /* --------------------------------- HERO --------------------------------- */
@@ -476,14 +516,6 @@ h1:focus-visible {
   color: #dbe6d7;
 }
 
-.hero-greeting {
-  margin: 0 0 0.6rem;
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
-  font-weight: 400;
-  color: #e7efe4;
-}
-
 .hero-lead {
   max-width: 52ch;
   margin: 0 auto 2.2rem;
@@ -558,100 +590,129 @@ h1:focus-visible {
   flex-direction: column;
 }
 
-.fixedCard {
+/* Elenco servizi editoriale: righe numerate, non card */
+.service-list {
+  border-top: 1px solid var(--line);
+}
+
+.service-row {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) 15rem;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1.35rem, 2.4vw, 2rem) 0;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.35s var(--ease);
+}
+
+.service-row:hover,
+.service-row.is-active {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.service-index {
+  align-self: start;
+  padding-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  color: var(--sage-deep);
+}
+
+.service-copy {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: none;
-  transition:
-    transform 0.5s var(--ease),
-    border-color 0.5s var(--ease),
-    box-shadow 0.5s var(--ease);
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
-.fixedCard:hover {
-  transform: translateY(-4px);
-  border-color: rgba(140, 166, 140, 0.55);
-  box-shadow: 0 22px 46px rgba(42, 53, 45, 0.09);
-}
-
-.fixedCard img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  height: auto;
-  object-fit: cover;
-  background: var(--mist);
-  transition: transform 1s var(--ease);
-}
-
-.fixedCard:hover img {
-  transform: scale(1.035);
-}
-
-.fixedCard .card-body {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1.5rem 1.45rem 1.4rem;
-}
-
-.fixedCard .card-title {
+.service-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 500;
-  line-height: 1.25;
-  text-align: left;
+  font-size: clamp(1.3rem, 2.2vw, 1.85rem);
+  font-weight: 400;
+  line-height: 1.18;
   color: var(--ink);
 }
 
-.fixedCard .card-text {
-  flex: 1 1 auto;
+.service-desc {
   margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.65;
+  max-width: 54ch;
   color: var(--muted);
-  text-align: left;
+  font-size: 0.95rem;
+  line-height: 1.65;
 }
 
-.btn-servizio {
+.service-link {
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  width: 100%;
-  margin-top: 1.1rem;
-  padding: 0.8rem 0 0.2rem;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+  padding: 0;
   border: 0;
-  border-top: 1px solid var(--line);
-  border-radius: 0;
   background: transparent;
   color: var(--sage-deep);
   font-size: 0.68rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   transition: color 0.3s var(--ease);
 }
 
-.btn-servizio i {
+.service-link i {
   font-size: 0.72rem;
-  transition: transform 0.4s var(--ease);
+  transition: transform 0.35s var(--ease);
 }
 
-.btn-servizio:hover,
-.btn-servizio:focus-visible {
+.service-link:hover,
+.service-link:focus-visible {
   color: var(--ink);
-  background: transparent;
+  outline: none;
 }
 
-.btn-servizio:hover i {
+.service-link:hover i {
   transform: translateX(4px);
+}
+
+.service-media {
+  margin: 0;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  border-radius: 14px;
+  background: var(--mist);
+}
+
+.service-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.9s var(--ease);
+}
+
+.service-row:hover .service-media img,
+.service-row.is-active .service-media img {
+  transform: scale(1.04);
+}
+
+@media (max-width: 767.98px) {
+  .service-row {
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+    gap: 0.75rem 1rem;
+    padding: 1.25rem 0 1.5rem;
+  }
+
+  .service-index {
+    padding-top: 0.1rem;
+    font-size: 0.9rem;
+  }
+
+  .service-media {
+    grid-column: 1 / -1;
+    margin-top: 0.45rem;
+    aspect-ratio: 16 / 9;
+  }
 }
 
 /* Dettagli inline (pagina Servizi) */
@@ -1345,8 +1406,8 @@ h1:focus-visible {
   animation-delay: 0.33s;
 }
 
-/* Comparsa progressiva allo scorrimento (site.js aggiunge .is-visible). */
-html.js-reveal :is(.reveal, .card-wrapper, .info-panel, .form-card, .section-head) {
+/* Comparsa progressiva allo scorrimento (site.js aggiunge data-revealed). */
+html.js-reveal :is(.reveal, .card-wrapper, .service-row, .info-panel, .form-card, .section-head) {
   opacity: 0;
   transform: translateY(20px);
   transition:
@@ -1354,7 +1415,7 @@ html.js-reveal :is(.reveal, .card-wrapper, .info-panel, .form-card, .section-hea
     transform 0.8s var(--ease);
 }
 
-html.js-reveal :is(.reveal, .card-wrapper, .info-panel, .form-card, .section-head).is-visible {
+html.js-reveal :is(.reveal, .card-wrapper, .service-row, .info-panel, .form-card, .section-head)[data-revealed="true"] {
   opacity: 1;
   transform: none;
 }
@@ -1371,6 +1432,18 @@ html.js-reveal .card-wrapper:nth-child(4) {
   transition-delay: 0.24s;
 }
 
+html.js-reveal .service-row:nth-child(2) {
+  transition-delay: 0.06s;
+}
+
+html.js-reveal .service-row:nth-child(3) {
+  transition-delay: 0.12s;
+}
+
+html.js-reveal .service-row:nth-child(4) {
+  transition-delay: 0.18s;
+}
+
 /* ------------------------------ RESPONSIVE ------------------------------ */
 
 @media (max-width: 991.98px) {
@@ -1385,6 +1458,14 @@ html.js-reveal .card-wrapper:nth-child(4) {
 
   .navbar .navbar-collapse .nav-link::after {
     display: none;
+  }
+
+  .navbar-user {
+    margin: 0.35rem 0;
+  }
+
+  .navbar-user-name {
+    max-width: 14rem;
   }
 
   .hero-section {
@@ -1683,6 +1764,318 @@ html.js-reveal .card-wrapper:nth-child(4) {
   color: var(--muted);
 }
 
+/* Indirizzi pubblici: schede con mappa, nello stile della pagina contatti */
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.address-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft);
+  text-align: left;
+}
+
+.address-details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.5rem 1.4rem 1.25rem;
+}
+
+.address-eyebrow {
+  margin: 0;
+  color: var(--sage-deep);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.address-details h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.address-details p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.address-days {
+  color: var(--ink) !important;
+  font-size: 0.88rem !important;
+}
+
+.address-actions {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.address-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 42px;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--sage-deep);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.address-link:hover,
+.address-link:focus-visible {
+  background: var(--mist);
+  border-color: var(--sage);
+  outline: none;
+}
+
+.address-map {
+  display: block;
+  width: 100%;
+  height: 230px;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.address-placeholder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 230px;
+  padding: 1.5rem;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: var(--mist);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s var(--ease);
+}
+
+.address-placeholder:hover,
+.address-placeholder:focus-visible {
+  background: var(--home);
+  outline: none;
+}
+
+.address-placeholder strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+
+.address-placeholder span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Suggerimenti sotto il campo di ricerca indirizzo, in stile Google Maps */
+.place-search {
+  position: relative;
+  z-index: 20;
+  margin-bottom: 1rem;
+}
+
+.place-loading {
+  margin-top: 0.35rem;
+}
+
+.place-suggestions {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  right: 0;
+  left: 0;
+  z-index: 40;
+  max-height: 15rem;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 18px 40px rgba(42, 53, 45, 0.14);
+}
+
+.place-suggestions-empty {
+  position: static;
+  padding: 0.7rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.place-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.place-suggestion:first-of-type {
+  border-top: 0;
+}
+
+.place-suggestion:hover,
+.place-suggestion:focus-visible {
+  background: var(--mist);
+  outline: none;
+}
+
+.place-suggestion-icon {
+  margin-top: 0.15rem;
+  color: var(--sage-deep);
+}
+
+.place-suggestion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.place-suggestion-primary {
+  font-weight: 600;
+}
+
+.place-suggestion-secondary {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.place-suggestions-footer {
+  padding: 0.3rem 0.9rem;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted-soft);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+.place-selected {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(78, 106, 85, 0.28);
+  border-radius: var(--radius-sm);
+  background: rgba(140, 166, 140, 0.14);
+  color: #3d5343;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.place-selected i {
+  margin-top: 0.15rem;
+  color: var(--sage-deep);
+}
+
+.place-hint {
+  color: var(--muted);
+}
+
+/* Selettore dell'indirizzo sulla mappa nel form di gestione */
+.map-picker {
+  width: 100%;
+  height: 300px;
+  margin: 0.4rem 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 767.98px) {
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-picker {
+    height: 260px;
+  }
+}
+
+/* Form nelle dialog larghe: i campi restano proporzionati, non a tutta larghezza */
+.dialog-form {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.dialog-address-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1.25rem, 2.5vw, 2.25rem);
+}
+
+.dialog-address-form,
+.dialog-address-map {
+  min-width: 0;
+}
+
+.dialog-address-map .map-picker {
+  height: 430px;
+}
+
+.dialog-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7rem;
+  gap: 0 0.9rem;
+}
+
+.dialog-days {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.5rem;
+}
+
+@media (max-width: 899.98px) {
+  .dialog-address-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-address-map .map-picker {
+    height: 320px;
+  }
+}
+
+@media (max-width: 599.98px) {
+  .dialog-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-days {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-address-map .map-picker {
+    height: 260px;
+  }
+}
+
 /* Hamburger leggibile sopra la fotografia della home */
 .navbar-transparent .navbar-toggler {
   color: #fff;
@@ -1695,4 +2088,63 @@ html.js-reveal .card-wrapper:nth-child(4) {
 /* Il <picture> non deve creare un livello proprio */
 .hero-picture {
   display: contents;
+}
+
+/* Schermi bassi (portatili con scaling): titolo, pulsanti e freccia
+   devono restare interamente visibili all'apertura della pagina.
+   In fondo al file così prevalgono sulle regole responsive per larghezza. */
+@media (max-height: 760px) {
+  .hero-content {
+    padding-top: 5.5rem;
+    padding-bottom: 3.5rem;
+  }
+
+  .hero-eyebrow {
+    margin-bottom: 0.7rem;
+  }
+
+  .hero-title {
+    margin-bottom: 0.85rem;
+    font-size: clamp(2.1rem, 4.4vw, 3.2rem);
+  }
+
+  .hero-lead {
+    margin-bottom: 1.3rem;
+    font-size: 0.94rem;
+    line-height: 1.6;
+  }
+
+  .hero-scroll {
+    margin-top: 1.4rem;
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+}
+
+@media (max-height: 640px) {
+  .hero-content {
+    padding-top: 4.6rem;
+    padding-bottom: 2.4rem;
+  }
+
+  .hero-title {
+    font-size: clamp(1.9rem, 4vw, 2.7rem);
+  }
+
+  .hero-lead {
+    margin-bottom: 1rem;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .hero-actions .btn-lg {
+    padding: 0.55rem 1.1rem;
+    font-size: 0.8rem;
+  }
+
+  .hero-scroll {
+    margin-top: 1rem;
+    width: 2rem;
+    height: 2rem;
+  }
 }

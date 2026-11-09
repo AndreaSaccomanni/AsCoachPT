@@ -1,5 +1,6 @@
 @page "/gestioneIndirizzi"
 @attribute [Authorize(Roles = "ADMIN,PERSONAL_TRAINER")]
+@implements IDisposable
 @inject IndirizzoService IndirizziSvc
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
@@ -68,7 +69,7 @@
         </MudTable>
     }
 
-    <MudDialog @bind-Visible="modaleAperta">
+    <MudDialog @bind-Visible="modaleAperta" Options="opzioniDialog">
         <TitleContent>
             <MudText Typo="Typo.h6">@(modale.Id is null ? "Aggiungi Indirizzo" : "Modifica Indirizzo")</MudText>
         </TitleContent>
@@ -78,38 +79,108 @@
                 <MudAlert Severity="Severity.Error" Class="mb-4">@erroreModale</MudAlert>
             }
 
-            <MudTextField T="string" Label="Cerca luogo (Google)" @bind-Value="modale.Luogo" Immediate="true"
-                          Variant="Variant.Outlined" Class="mb-2" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          DebounceInterval="400" OnDebounceIntervalElapsed="CercaLuogoAsync" />
-            <MudTextField T="string" Label="Indirizzo trovato" Value="@modale.LuogoTrovato" ReadOnly="true" Variant="Variant.Outlined" Class="mb-4" />
+            <div class="dialog-address-grid">
+                <div class="dialog-address-form">
+                    <div class="place-search">
+                        <MudTextField T="string" Label="Cerca luogo (Google)" @bind-Value="modale.Luogo" Immediate="true"
+                                      Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                      DebounceInterval="200" OnDebounceIntervalElapsed="CercaSuggerimentiAsync" />
 
-            @if (modale.Id is not null)
-            {
-                <MudTextField T="string" Label="Via" @bind-Value="modale.Via" Variant="Variant.Outlined" Class="mb-4" />
-                <MudTextField T="string" Label="Numero civico" @bind-Value="modale.NumeroCivico" Variant="Variant.Outlined" Class="mb-4" />
-                <MudTextField T="string" Label="Città" @bind-Value="modale.Citta" Variant="Variant.Outlined" Class="mb-4" />
-                <MudTextField T="string" Label="Provincia" @bind-Value="modale.Provincia" Variant="Variant.Outlined" Class="mb-4" />
-            }
+                        @if (caricandoSuggerimenti)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="place-loading" />
+                        }
+                        else if (suggerimenti.Count > 0)
+                        {
+                            <div class="place-suggestions" role="listbox" aria-label="Suggerimenti indirizzo">
+                                @foreach (var suggerimento in suggerimenti)
+                                {
+                                    <button type="button" class="place-suggestion" role="option"
+                                            @onclick="() => SelezionaSuggerimentoAsync(suggerimento)">
+                                        <i class="fas fa-location-dot place-suggestion-icon" aria-hidden="true"></i>
+                                        <span class="place-suggestion-text">
+                                            <span class="place-suggestion-primary">@suggerimento.PrimaryText</span>
+                                            @if (!string.IsNullOrWhiteSpace(suggerimento.SecondaryText))
+                                            {
+                                                <span class="place-suggestion-secondary">@suggerimento.SecondaryText</span>
+                                            }
+                                        </span>
+                                    </button>
+                                }
+                                <div class="place-suggestions-footer">Suggerimenti di Google</div>
+                            </div>
+                        }
+                        else if (ricercaEseguita && modale.Luogo.Trim().Length >= 3)
+                        {
+                            <div class="place-suggestions place-suggestions-empty">
+                                Nessun risultato: aggiungi città o provincia e riprova.
+                            </div>
+                        }
+                    </div>
 
-            <MudTextField T="string" Label="Nome Studio" @bind-Value="modale.NomeStudio" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+                    @if (!string.IsNullOrWhiteSpace(modale.LuogoTrovato))
+                    {
+                        <div class="place-selected" role="status">
+                            <i class="fas fa-circle-check" aria-hidden="true"></i>
+                            <span>@modale.LuogoTrovato</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="place-hint d-block mb-3">
+                            Scegli un suggerimento oppure clicca direttamente sulla mappa.
+                        </MudText>
+                    }
 
-            <MudText Typo="Typo.subtitle2" Class="mb-2">Giorni disponibili</MudText>
-            @if (!modale.Attivo)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-2">
-                    Studio disabilitato: i giorni sono liberi. Riabilitalo dalla lista per riassegnarli.
-                </MudAlert>
-            }
-            @foreach (var giorno in GiorniSettimana)
-            {
-                var assegnatoAltrove = giorniAssegnati.Contains(giorno) && !modale.Giorni.Contains(giorno);
-                <MudCheckBox T="bool" Value="@modale.Giorni.Contains(giorno)" Label="@giorno"
-                             Disabled="@(!modale.Attivo || assegnatoAltrove)"
-                             ValueChanged="@((bool v) => ToggleGiorno(giorno, v))" Color="Color.Primary" />
-            }
+                    @if (modale.Id is not null)
+                    {
+                        <div class="dialog-field-grid">
+                            <MudTextField T="string" Label="Via" @bind-Value="modale.Via" Variant="Variant.Outlined" Class="mb-4" />
+                            <MudTextField T="string" Label="Numero civico" @bind-Value="modale.NumeroCivico" Variant="Variant.Outlined" Class="mb-4" />
+                            <MudTextField T="string" Label="Città" @bind-Value="modale.Citta" Variant="Variant.Outlined" Class="mb-4" />
+                            <MudTextField T="string" Label="Provincia" @bind-Value="modale.Provincia" Variant="Variant.Outlined" Class="mb-4" />
+                        </div>
+                    }
+
+                    <MudTextField T="string" Label="Nome Studio" @bind-Value="modale.NomeStudio" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Giorni disponibili</MudText>
+                    @if (!modale.Attivo)
+                    {
+                        <MudAlert Severity="Severity.Info" Class="mb-2">
+                            Studio disabilitato: i giorni sono liberi. Riabilitalo dalla lista per riassegnarli.
+                        </MudAlert>
+                    }
+                    <div class="dialog-days">
+                        @foreach (var giorno in GiorniSettimana)
+                        {
+                            var assegnatoAltrove = giorniAssegnati.Contains(giorno) && !modale.Giorni.Contains(giorno);
+                            <MudCheckBox T="bool" Value="@modale.Giorni.Contains(giorno)" Label="@giorno"
+                                         Disabled="@(!modale.Attivo || assegnatoAltrove)"
+                                         ValueChanged="@((bool v) => ToggleGiorno(giorno, v))" Color="Color.Primary" />
+                        }
+                    </div>
+                </div>
+
+                <div class="dialog-address-map">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Posizione sulla mappa</MudText>
+                    <div id="selettore-mappa" class="map-picker" aria-label="Mappa per scegliere l'indirizzo"></div>
+                    <MudText Typo="Typo.caption" Class="d-block">
+                        Clicca sulla mappa per impostare l'indirizzo dello studio.
+                    </MudText>
+
+                    @if (mappaSelettoreFallita)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="RiprovaMappaAsync" Class="mt-3">
+                            Riprova a caricare la mappa
+                        </MudButton>
+                    }
+                </div>
+            </div>
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="() => modaleAperta = false">Chiudi</MudButton>
+            <MudButton OnClick="ChiudiModaleAsync">Chiudi</MudButton>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SalvaAsync" Disabled="salvando">
                 @(modale.Id is null ? "Aggiungi" : "Salva Modifiche")
             </MudButton>
@@ -145,11 +216,58 @@
     private bool modaleAperta;
     private bool confermaAperta;
     private long idDaEliminare;
+    private string? luogoRisolto;
+    private List<SuggerimentoLuogo> suggerimenti = new();
+    private bool caricandoSuggerimenti;
+    private int versioneRicerca;
+    private bool mappaSelettoreInizializzata;
+    private bool mappaSelettoreFallita;
+    private bool ricercaEseguita;
+    private DotNetObjectReference<GestioneIndirizzi>? riferimentoJs;
+
+    private const string IdSelettoreMappa = "selettore-mappa";
+    private const string MessaggioMappaNonDisponibile = "Mappa non disponibile: controlla la connessione a Google Maps.";
+
+    private readonly DialogOptions opzioniDialog = new()
+    {
+        FullWidth = true,
+        MaxWidth = MaxWidth.Large
+    };
 
     protected override async Task OnInitializedAsync()
     {
+        riferimentoJs = DotNetObjectReference.Create(this);
         await CaricaAsync();
         loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (modaleAperta && !mappaSelettoreInizializzata && !mappaSelettoreFallita)
+        {
+            mappaSelettoreInizializzata = await JS.InvokeAsync<bool>(
+                "asCoachInitMapPicker", IdSelettoreMappa, riferimentoJs, modale.Latitudine, modale.Longitudine);
+
+            if (!mappaSelettoreInizializzata)
+            {
+                mappaSelettoreFallita = true;
+                erroreModale = MessaggioMappaNonDisponibile;
+                StateHasChanged();
+            }
+            else
+            {
+                mappaSelettoreFallita = false;
+                if (erroreModale == MessaggioMappaNonDisponibile)
+                {
+                    erroreModale = null;
+                }
+            }
+        }
+        else if (!modaleAperta && mappaSelettoreInizializzata)
+        {
+            await JS.InvokeVoidAsync("asCoachDisposeMapPicker", IdSelettoreMappa);
+            mappaSelettoreInizializzata = false;
+        }
     }
 
     private async Task CaricaAsync()
@@ -191,12 +309,26 @@
         erroreGiorni = null;
         erroreModale = null;
         modale = new IndirizzoModale();
+        luogoRisolto = null;
+        suggerimenti = new();
+        caricandoSuggerimenti = false;
+        versioneRicerca++;
+        mappaSelettoreInizializzata = false;
+        mappaSelettoreFallita = false;
+        ricercaEseguita = false;
         modaleAperta = true;
     }
 
     private void ApriModifica(Indirizzo indirizzo)
     {
         erroreModale = null;
+        luogoRisolto = null;
+        suggerimenti = new();
+        caricandoSuggerimenti = false;
+        versioneRicerca++;
+        mappaSelettoreInizializzata = false;
+        mappaSelettoreFallita = false;
+        ricercaEseguita = false;
         modale = new IndirizzoModale
         {
             Id = indirizzo.Id,
@@ -225,40 +357,172 @@
         }
     }
 
-    private async Task CercaLuogoAsync(string query)
+    /// <summary>Mostra i suggerimenti Google mentre l'utente digita; nessuna scelta automatica.</summary>
+    private async Task CercaSuggerimentiAsync(string query)
     {
-        if (string.IsNullOrWhiteSpace(query))
+        var versione = ++versioneRicerca;
+
+        if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < 3 ||
+            (!string.IsNullOrWhiteSpace(luogoRisolto) && string.Equals(query, luogoRisolto, StringComparison.Ordinal)))
         {
+            suggerimenti = new();
+            caricandoSuggerimenti = false;
+            ricercaEseguita = false;
             return;
         }
 
+        // Per un nuovo indirizzo, cambiare testo invalida la scelta precedente:
+        // solo un suggerimento o un punto sulla mappa forniscono la posizione.
+        if (modale.Id is null && !string.IsNullOrWhiteSpace(luogoRisolto))
+        {
+            modale.LuogoTrovato = string.Empty;
+            modale.Latitudine = null;
+            modale.Longitudine = null;
+            luogoRisolto = null;
+        }
+
+        caricandoSuggerimenti = true;
+        ricercaEseguita = false;
+
         try
         {
-            var risultato = await JS.InvokeAsync<PlaceResult?>("asCoachSearchPlace", query);
-            if (risultato is null)
+            var risultati = await JS.InvokeAsync<List<SuggerimentoLuogo>>("asCoachPlaceSuggestions", query);
+            if (versione != versioneRicerca)
             {
                 return;
             }
 
-            modale.LuogoTrovato = risultato.FormattedAddress ?? string.Empty;
-            modale.Via = risultato.Via ?? modale.Via;
-            modale.NumeroCivico = risultato.NumeroCivico ?? modale.NumeroCivico;
-            modale.Citta = risultato.Citta ?? modale.Citta;
-            modale.Provincia = risultato.Provincia ?? modale.Provincia;
-            modale.Latitudine = risultato.Lat ?? modale.Latitudine;
-            modale.Longitudine = risultato.Lng ?? modale.Longitudine;
+            suggerimenti = risultati ?? new();
+            ricercaEseguita = true;
         }
         catch (Exception ex)
         {
-            erroreModale = "Ricerca luogo non disponibile: " + ex.Message;
+            if (versione == versioneRicerca)
+            {
+                erroreModale = "Ricerca luogo non disponibile: " + ex.Message;
+                suggerimenti = new();
+                ricercaEseguita = false;
+            }
+        }
+        finally
+        {
+            if (versione == versioneRicerca)
+            {
+                caricandoSuggerimenti = false;
+            }
         }
     }
+
+    private async Task SelezionaSuggerimentoAsync(SuggerimentoLuogo suggerimento)
+    {
+        try
+        {
+            var risultato = await JS.InvokeAsync<PlaceResult?>("asCoachPlaceDetails", suggerimento.PlaceId);
+            if (risultato is null)
+            {
+                erroreModale = "Dettaglio del luogo non disponibile: riprova o scegli un altro suggerimento.";
+                return;
+            }
+
+            ApplicaRisultato(risultato);
+            modale.Luogo = risultato.FormattedAddress ?? suggerimento.PrimaryText;
+            luogoRisolto = modale.Luogo;
+            suggerimenti = new();
+            ricercaEseguita = false;
+            erroreModale = null;
+
+            if (mappaSelettoreInizializzata && risultato.Lat is double lat && risultato.Lng is double lng)
+            {
+                await JS.InvokeVoidAsync("asCoachSetMapPickerPosition", IdSelettoreMappa, lat, lng);
+            }
+        }
+        catch (Exception ex)
+        {
+            erroreModale = "Dettaglio del luogo non disponibile: " + ex.Message;
+        }
+    }
+
+    private void RiprovaMappaAsync()
+    {
+        mappaSelettoreFallita = false;
+        mappaSelettoreInizializzata = false;
+        erroreModale = null;
+    }
+
+    /// <summary>Riceve l'indirizzo del punto scelto sulla mappa.</summary>
+    [JSInvokable]
+    public Task AggiornaDaMappa(PlaceResult risultato)
+    {
+        if (risultato is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        ApplicaRisultato(risultato);
+        modale.Luogo = risultato.FormattedAddress ?? modale.Luogo;
+        luogoRisolto = modale.Luogo;
+        suggerimenti = new();
+        ricercaEseguita = false;
+        erroreModale = null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void ApplicaRisultato(PlaceResult risultato)
+    {
+        modale.LuogoTrovato = risultato.FormattedAddress ?? string.Empty;
+        modale.Via = string.IsNullOrWhiteSpace(risultato.Via)
+            ? PrimoSegmento(risultato.FormattedAddress)
+            : risultato.Via;
+        modale.NumeroCivico = risultato.NumeroCivico ?? string.Empty;
+        modale.Citta = risultato.Citta ?? string.Empty;
+        modale.Provincia = risultato.Provincia ?? string.Empty;
+        if (risultato.Lat is double lat) modale.Latitudine = lat;
+        if (risultato.Lng is double lng) modale.Longitudine = lng;
+    }
+
+    /// <summary>Usa la prima parte dell'indirizzo quando Google non fornisce la via.</summary>
+    private static string PrimoSegmento(string? indirizzo)
+    {
+        if (string.IsNullOrWhiteSpace(indirizzo))
+        {
+            return string.Empty;
+        }
+
+        var virgola = indirizzo.IndexOf(',');
+        return (virgola > 0 ? indirizzo[..virgola] : indirizzo).Trim();
+    }
+
+    private async Task ChiudiModaleAsync()
+    {
+        modaleAperta = false;
+        suggerimenti = new();
+        caricandoSuggerimenti = false;
+        versioneRicerca++;
+        ricercaEseguita = false;
+        mappaSelettoreFallita = false;
+
+        if (mappaSelettoreInizializzata)
+        {
+            await JS.InvokeVoidAsync("asCoachDisposeMapPicker", IdSelettoreMappa);
+            mappaSelettoreInizializzata = false;
+        }
+    }
+
+    public void Dispose() => riferimentoJs?.Dispose();
 
     private async Task SalvaAsync()
     {
         if (string.IsNullOrWhiteSpace(modale.NomeStudio))
         {
             erroreModale = "Il nome studio è obbligatorio";
+            return;
+        }
+
+        if (modale.Id is null &&
+            (modale.Latitudine is null || modale.Longitudine is null || string.IsNullOrWhiteSpace(modale.LuogoTrovato)))
+        {
+            erroreModale = "Seleziona uno dei suggerimenti Google o un punto sulla mappa: la posizione serve per mostrare la mappa.";
             return;
         }
 
@@ -287,7 +551,7 @@
                 await IndirizziSvc.AggiornaAsync(modale.Id.Value, indirizzo);
             }
 
-            modaleAperta = false;
+            await ChiudiModaleAsync();
             await CaricaAsync();
             Snackbar.Add(modale.Id is null ? "Indirizzo aggiunto" : "Indirizzo aggiornato", Severity.Success);
         }
@@ -339,6 +603,13 @@
         public double? Latitudine { get; set; }
         public double? Longitudine { get; set; }
         public List<string> Giorni { get; set; } = new();
+    }
+
+    public sealed class SuggerimentoLuogo
+    {
+        public string PlaceId { get; set; } = string.Empty;
+        public string PrimaryText { get; set; } = string.Empty;
+        public string SecondaryText { get; set; } = string.Empty;
     }
 
     public sealed class PlaceResult

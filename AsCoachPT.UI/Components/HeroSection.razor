@@ -1,6 +1,4 @@
 @inject IJSRuntime JS
-@using Microsoft.AspNetCore.Components.Authorization
-@using System.Security.Claims
 
 <header class="hero-section">
     <picture class="hero-picture">
@@ -16,13 +14,6 @@
     </picture>
 
     <div class="hero-content">
-        <AuthorizeView>
-            <Authorized Context="auth">
-                <p class="hero-eyebrow">Bentornato</p>
-                <h2 class="hero-greeting">@(auth.User.FindFirst("nome")?.Value ?? auth.User.Identity?.Name)</h2>
-            </Authorized>
-        </AuthorizeView>
-
         <p class="hero-eyebrow">Personal Trainer · Chinesiologo Sportivo</p>
         <h1 class="hero-title">Migliora il tuo<br /><em>benessere</em></h1>
         <p class="hero-lead">Scopri un percorso personalizzato per migliorare la tua forma fisica con consulenze personalizzate e massaggi mirati.</p>
