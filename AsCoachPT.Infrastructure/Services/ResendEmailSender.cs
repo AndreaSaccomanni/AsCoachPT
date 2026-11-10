@@ -13,6 +13,7 @@ public sealed class ResendOptions
 
     public string ApiKey { get; set; } = string.Empty;
     public string From { get; set; } = "onboarding@resend.dev";
+    public string ReplyTo { get; set; } = "alessandrosaccomanni.pt@gmail.com";
 }
 
 /// <summary>Invia email tramite l'API HTTP di Resend: funziona anche dove SMTP è bloccato.</summary>
@@ -47,6 +48,10 @@ public sealed class ResendEmailSender(
         if (!string.IsNullOrWhiteSpace(rispostaA))
         {
             corpo["reply_to"] = rispostaA;
+        }
+        else if (!string.IsNullOrWhiteSpace(_impostazioni.ReplyTo))
+        {
+            corpo["reply_to"] = _impostazioni.ReplyTo;
         }
 
         using var richiesta = new HttpRequestMessage(HttpMethod.Post, "emails")
