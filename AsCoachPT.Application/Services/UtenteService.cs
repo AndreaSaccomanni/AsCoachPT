@@ -17,14 +17,16 @@ public sealed class UtenteService(
     /// <summary>Registra un nuovo utente e invia l'email di benvenuto.</summary>
     public async Task<Utente> RegistraAsync(RegisterRequest richiesta, CancellationToken tokenAnnullamento = default)
     {
-        if (await utenti.EsisteEmailAsync(richiesta.Email, tokenAnnullamento))
+        var email = richiesta.Email.Trim();
+
+        if (await utenti.EsisteEmailAsync(email, tokenAnnullamento))
         {
             throw new InvalidOperationException("Email già presente nel sistema");
         }
 
-        if (await utenti.EsisteUsernameAsync(richiesta.Username, tokenAnnullamento))
+        if (string.IsNullOrWhiteSpace(richiesta.Telefono))
         {
-            throw new InvalidOperationException("Username già presente nel sistema");
+            throw new InvalidOperationException("Il numero di telefono è obbligatorio");
         }
 
         var ruolo = UserRole.USER;
@@ -39,8 +41,10 @@ public sealed class UtenteService(
             Nome = richiesta.Nome,
             Cognome = richiesta.Cognome,
             DataDiNascita = richiesta.DataDiNascita,
-            Email = richiesta.Email,
-            Username = richiesta.Username,
+            Email = email,
+            Telefono = richiesta.Telefono.Trim(),
+            // L'username resta nel database come campo legacy: per i nuovi utenti è l'email.
+            Username = email,
             Password = passwordHasher.GeneraHash(richiesta.Password),
             Ruolo = ruolo
         };
@@ -69,10 +73,14 @@ public sealed class UtenteService(
         return utente;
     }
 
-    /// <summary>Verifica username e password; restituisce null se le credenziali non sono valide.</summary>
-    public async Task<Utente?> VerificaCredenzialiAsync(string username, string password, CancellationToken tokenAnnullamento = default)
+    /// <summary>Verifica email (o username legacy) e password; null se le credenziali non sono valide.</summary>
+    public async Task<Utente?> VerificaCredenzialiAsync(string identificativo, string password, CancellationToken tokenAnnullamento = default)
     {
-        var utente = await utenti.TrovaPerUsernameAsync(username, tokenAnnullamento);
+        var valore = identificativo.Trim();
+
+        var utente = await utenti.TrovaPerEmailAsync(valore, tokenAnnullamento)
+            ?? await utenti.TrovaPerUsernameAsync(valore, tokenAnnullamento);
+
         if (utente is null || !passwordHasher.Verifica(password, utente.Password))
         {
             return null;
@@ -85,6 +93,10 @@ public sealed class UtenteService(
     public Task<List<Utente>> ElencaAsync(CancellationToken tokenAnnullamento = default) =>
         utenti.ElencaAsync(tokenAnnullamento);
 
+    /// <summary>Cerca un utente per email (case-insensitive).</summary>
+    public Task<Utente?> TrovaPerEmailAsync(string email, CancellationToken tokenAnnullamento = default) =>
+        utenti.TrovaPerEmailAsync(email, tokenAnnullamento);
+
     /// <summary>Recupera un utente o segnala che non esiste.</summary>
     public async Task<Utente> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
         await utenti.TrovaPerIdAsync(id, tokenAnnullamento) ?? throw new InvalidOperationException("Utente non trovato!⚠️");
@@ -94,11 +106,17 @@ public sealed class UtenteService(
     {
         var utente = await TrovaPerIdAsync(id, tokenAnnullamento);
 
+        if (string.IsNullOrWhiteSpace(modifiche.Telefono))
+        {
+            throw new InvalidOperationException("Il numero di telefono è obbligatorio");
+        }
+
         if (!string.IsNullOrWhiteSpace(modifiche.Nome)) utente.Nome = modifiche.Nome;
         if (!string.IsNullOrWhiteSpace(modifiche.Cognome)) utente.Cognome = modifiche.Cognome;
         if (modifiche.DataDiNascita is not null) utente.DataDiNascita = modifiche.DataDiNascita;
         if (!string.IsNullOrWhiteSpace(modifiche.Username)) utente.Username = modifiche.Username;
         if (!string.IsNullOrWhiteSpace(modifiche.Email)) utente.Email = modifiche.Email;
+        utente.Telefono = modifiche.Telefono.Trim();
         if (!string.IsNullOrWhiteSpace(modifiche.Password)) utente.Password = passwordHasher.GeneraHash(modifiche.Password);
         if (modifiche.Ruolo is not null) utente.Ruolo = modifiche.Ruolo;
 
@@ -108,7 +126,7 @@ public sealed class UtenteService(
         }
         catch (Exception eccezione) when (eccezione.GetType().Name == "DbUpdateException")
         {
-            throw new InvalidOperationException("Username o email già presenti nel sistema");
+            throw new InvalidOperationException("Email già presente nel sistema");
         }
 
         return utente;

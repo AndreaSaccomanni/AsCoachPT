@@ -37,7 +37,9 @@ public sealed class SmtpEmailSender(
     {
         if (!ConfigurazioneCompleta)
         {
-            logger.LogWarning("SMTP non configurato: email a {Destinatario} non inviata", destinatario);
+            logger.LogWarning(
+                "SMTP non configurato (servono Host, Username, Password e From): email a {Destinatario} non inviata",
+                destinatario);
             return false;
         }
 
@@ -76,7 +78,11 @@ public sealed class SmtpEmailSender(
         }
     }
 
-    private bool ConfigurazioneCompleta => !string.IsNullOrWhiteSpace(_impostazioni.Host);
+    private bool ConfigurazioneCompleta =>
+        !string.IsNullOrWhiteSpace(_impostazioni.Host) &&
+        !string.IsNullOrWhiteSpace(_impostazioni.Username) &&
+        !string.IsNullOrWhiteSpace(_impostazioni.Password) &&
+        !string.IsNullOrWhiteSpace(_impostazioni.From);
 
     private SecureSocketOptions OpzioniSocket => _impostazioni.Security switch
     {

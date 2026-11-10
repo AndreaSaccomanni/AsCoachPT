@@ -54,6 +54,22 @@ public sealed class PrenotazioneRepository(AsCoachDbContext contesto) : IPrenota
 
     public void Rimuovi(Prenotazione prenotazione) => contesto.Prenotazioni.Remove(prenotazione);
 
+    public Task AggiungiNotificaAsync(NotificaPrenotazione notifica, CancellationToken tokenAnnullamento = default) =>
+        contesto.NotifichePrenotazioni.AddAsync(notifica, tokenAnnullamento).AsTask();
+
+    public Task<List<NotificaPrenotazione>> ElencaNotificheNonLetteAsync(CancellationToken tokenAnnullamento = default) =>
+        contesto.NotifichePrenotazioni
+            .AsNoTracking()
+            .Where(notifica => !notifica.Letta)
+            .OrderByDescending(notifica => notifica.CreataIl)
+            .Take(20)
+            .ToListAsync(tokenAnnullamento);
+
+    public Task SegnaNotificheLetteAsync(CancellationToken tokenAnnullamento = default) =>
+        contesto.NotifichePrenotazioni
+            .Where(notifica => !notifica.Letta)
+            .ExecuteUpdateAsync(aggiornamento => aggiornamento.SetProperty(notifica => notifica.Letta, true), tokenAnnullamento);
+
     private IQueryable<Prenotazione> BaseQuery() =>
         contesto.Prenotazioni
             .Include(prenotazione => prenotazione.Utente)

@@ -54,6 +54,7 @@ public sealed class ResendEmailSender(
             Content = JsonContent.Create(corpo)
         };
         richiesta.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _impostazioni.ApiKey);
+        richiesta.Headers.UserAgent.ParseAdd("AsCoachPT/1.0");
 
         try
         {

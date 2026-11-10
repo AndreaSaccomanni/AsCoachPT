@@ -1,9 +1,13 @@
 @page "/utenti"
 @attribute [Authorize(Roles = "ADMIN,PERSONAL_TRAINER")]
 @inject UtenteService UtentiSvc
+@inject PasswordResetService ResetSvc
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="my-8">
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-3">
     <div class="d-flex align-items-center justify-content-between mb-4">
         <MudText Typo="Typo.h4">Lista Utenti</MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="ApriNuovo">
@@ -23,29 +27,35 @@
     {
         <MudTable Items="@Righe" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true" Elevation="2">
             <HeaderContent>
+                <MudTh>Azioni</MudTh>
                 <MudTh>#</MudTh>
                 <MudTh>Nome</MudTh>
                 <MudTh>Cognome</MudTh>
                 <MudTh>Email</MudTh>
+                <MudTh>Telefono</MudTh>
                 <MudTh>Data di nascita</MudTh>
-                <MudTh>Username</MudTh>
                 <MudTh>Ruolo</MudTh>
-                <MudTh>Azioni</MudTh>
             </HeaderContent>
             <RowTemplate Context="riga">
+                <MudTd DataLabel="Azioni">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
+                             AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft"
+                             AriaLabel="Azioni utente">
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => ApriModifica(riga.Utente)">Modifica</MudMenuItem>
+                        @if (PuoReimpostare(riga.Utente))
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.LockReset" OnClick="() => ApriReimposta(riga.Utente)">Reimposta password</MudMenuItem>
+                        }
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="() => ChiediEliminazione(riga.Utente.Id)">Elimina</MudMenuItem>
+                    </MudMenu>
+                </MudTd>
                 <MudTd DataLabel="#">@riga.Posizione</MudTd>
                 <MudTd DataLabel="Nome">@riga.Utente.Nome</MudTd>
                 <MudTd DataLabel="Cognome">@riga.Utente.Cognome</MudTd>
                 <MudTd DataLabel="Email">@riga.Utente.Email</MudTd>
+                <MudTd DataLabel="Telefono">@(string.IsNullOrWhiteSpace(riga.Utente.Telefono) ? "-" : riga.Utente.Telefono)</MudTd>
                 <MudTd DataLabel="Nascita">@(riga.Utente.DataDiNascita?.ToString("dd/MM/yyyy") ?? "-")</MudTd>
-                <MudTd DataLabel="Username">@riga.Utente.Username</MudTd>
                 <MudTd DataLabel="Ruolo">@riga.Utente.Ruolo</MudTd>
-                <MudTd DataLabel="Azioni">
-                    <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="() => ApriModifica(riga.Utente)">Modifica</MudButton>
-                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
-                               OnClick="() => ChiediEliminazione(riga.Utente.Id)">Elimina</MudButton>
-                </MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -61,8 +71,8 @@
             <MudTextField T="string" Label="Nome" @bind-Value="modifica.Nome" Variant="Variant.Outlined" Class="mb-4" />
             <MudTextField T="string" Label="Cognome" @bind-Value="modifica.Cognome" Variant="Variant.Outlined" Class="mb-4" />
             <MudTextField T="string" Label="Email" @bind-Value="modifica.Email" Variant="Variant.Outlined" Class="mb-4" />
+            <MudTextField T="string" Label="Telefono" @bind-Value="modifica.Telefono" InputType="InputType.Text" Variant="Variant.Outlined" Class="mb-4" Required="true" />
             <MudDatePicker Editable="true" @bind-Date="modifica.DataDiNascita" Label="Data di nascita" Color="Color.Primary" Class="mb-4" />
-            <MudTextField T="string" Label="Username" @bind-Value="modifica.Username" Variant="Variant.Outlined" Class="mb-4" />
             <MudSelect T="string" Label="Ruolo" @bind-Value="modifica.Ruolo" Variant="Variant.Outlined">
                 <MudSelectItem T="string" Value="@nameof(UserRole.ADMIN)">ADMIN</MudSelectItem>
                 <MudSelectItem T="string" Value="@nameof(UserRole.PERSONAL_TRAINER)">PERSONAL_TRAINER</MudSelectItem>
@@ -87,8 +97,8 @@
             <MudTextField T="string" Label="Nome" @bind-Value="nuovo.Nome" Variant="Variant.Outlined" Class="mb-4" Required="true" />
             <MudTextField T="string" Label="Cognome" @bind-Value="nuovo.Cognome" Variant="Variant.Outlined" Class="mb-4" Required="true" />
             <MudTextField T="string" Label="Email" @bind-Value="nuovo.Email" InputType="InputType.Email" Variant="Variant.Outlined" Class="mb-4" Required="true" />
+            <MudTextField T="string" Label="Telefono" @bind-Value="nuovo.Telefono" InputType="InputType.Text" Variant="Variant.Outlined" Class="mb-4" Required="true" />
             <MudDatePicker Editable="true" @bind-Date="nuovo.DataDiNascita" Label="Data di nascita" Color="Color.Primary" Class="mb-4" />
-            <MudTextField T="string" Label="Username" @bind-Value="nuovo.Username" Variant="Variant.Outlined" Class="mb-4" Required="true" />
             <MudTextField T="string" Label="Password" @bind-Value="nuovo.Password" InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-4" Required="true" />
             <MudSelect T="string" Label="Ruolo" @bind-Value="nuovo.Ruolo" Variant="Variant.Outlined">
                 <MudSelectItem T="string" Value="@nameof(UserRole.ADMIN)">ADMIN</MudSelectItem>
@@ -100,6 +110,54 @@
         <DialogActions>
             <MudButton OnClick="() => modaleNuovoAperta = false">Annulla</MudButton>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SalvaNuovoAsync" Disabled="salvando">Aggiungi Utente</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-Visible="reimpostaAperta" Options="opzioniDialogReimposta">
+        <TitleContent><MudText Typo="Typo.h6">Reimposta password</MudText></TitleContent>
+        <DialogContent>
+            <div class="dialog-form">
+                @if (utenteReimposta is not null)
+                {
+                    <MudText Class="mb-2">Utente: <strong>@utenteReimposta.Nome @utenteReimposta.Cognome</strong></MudText>
+                    <MudText Typo="Typo.body2" Class="text-muted mb-4">Email: @utenteReimposta.Email</MudText>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(erroreReimpostazione))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-3">@erroreReimpostazione</MudAlert>
+                }
+
+                @if (linkReimpostazione is null)
+                {
+                    <MudText Class="mb-4">
+                        Verrà creato un link monouso valido 30 minuti. Se l'email non parte potrai copiarlo e consegnarlo all'utente.
+                    </MudText>
+                }
+                else
+                {
+                    <MudAlert Severity="@(emailInviata == true ? Severity.Success : Severity.Warning)" Class="mb-3">
+                        @(emailInviata == true
+                            ? "Email inviata all'utente."
+                            : "Email non inviata: copia il link e consegnalo all'utente.")
+                    </MudAlert>
+                    <MudTextField T="string" Value="@linkReimpostazione" ReadOnly="true" Variant="Variant.Outlined"
+                                  Lines="3" Class="mb-3" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopiaLinkAsync">
+                        Copia link
+                    </MudButton>
+                }
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="ChiudiReimposta">Chiudi</MudButton>
+            @if (linkReimpostazione is null)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="InviaLinkAsync" Disabled="invioLink">
+                    @(invioLink ? "Invio..." : "Invia link")
+                </MudButton>
+            }
         </DialogActions>
     </MudDialog>
 
@@ -129,6 +187,13 @@
     private bool confermaAperta;
     private string? erroreModale;
     private long idDaEliminare;
+    private bool isAdmin;
+    private bool reimpostaAperta;
+    private bool invioLink;
+    private Utente? utenteReimposta;
+    private string? linkReimpostazione;
+    private bool? emailInviata;
+    private string? erroreReimpostazione;
 
     private readonly DialogOptions opzioniDialog = new()
     {
@@ -136,8 +201,16 @@
         MaxWidth = MaxWidth.Large
     };
 
+    private readonly DialogOptions opzioniDialogReimposta = new()
+    {
+        FullWidth = true,
+        MaxWidth = MaxWidth.Medium
+    };
+
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        isAdmin = state.User.IsInRole(nameof(UserRole.ADMIN));
         await CaricaAsync();
         loading = false;
     }
@@ -157,8 +230,8 @@
             Nome = utente.Nome,
             Cognome = utente.Cognome,
             Email = utente.Email,
+            Telefono = utente.Telefono,
             DataDiNascita = utente.DataDiNascita?.ToDateTime(TimeOnly.MinValue),
-            Username = utente.Username,
             Ruolo = (utente.Ruolo ?? UserRole.USER).ToString()
         };
         modaleModificaAperta = true;
@@ -182,8 +255,8 @@
                 Nome = modifica.Nome,
                 Cognome = modifica.Cognome,
                 Email = modifica.Email,
+                Telefono = modifica.Telefono,
                 DataDiNascita = modifica.DataDiNascita is null ? null : DateOnly.FromDateTime(modifica.DataDiNascita.Value),
-                Username = modifica.Username,
                 Ruolo = Enum.Parse<UserRole>(modifica.Ruolo)
             });
 
@@ -212,8 +285,8 @@
                 Nome = nuovo.Nome,
                 Cognome = nuovo.Cognome,
                 Email = nuovo.Email,
+                Telefono = nuovo.Telefono,
                 DataDiNascita = nuovo.DataDiNascita is null ? null : DateOnly.FromDateTime(nuovo.DataDiNascita.Value),
-                Username = nuovo.Username,
                 Password = nuovo.Password,
                 Ruolo = nuovo.Ruolo
             });
@@ -230,6 +303,87 @@
         {
             salvando = false;
         }
+    }
+
+    /// <summary>Un personal trainer può reimpostare solo gli utenti; l'admin tutti.</summary>
+    private bool PuoReimpostare(Utente utente) =>
+        isAdmin || (utente.Ruolo ?? UserRole.USER) == UserRole.USER;
+
+    private void ApriReimposta(Utente utente)
+    {
+        utenteReimposta = utente;
+        linkReimpostazione = null;
+        emailInviata = null;
+        erroreReimpostazione = null;
+        invioLink = false;
+        reimpostaAperta = true;
+    }
+
+    private async Task InviaLinkAsync()
+    {
+        if (utenteReimposta is null || invioLink)
+        {
+            return;
+        }
+
+        invioLink = true;
+        erroreReimpostazione = null;
+
+        try
+        {
+            var esito = await ResetSvc.GeneraEInviaPerIdAsync(
+                utenteReimposta.Id, Nav.BaseUri.TrimEnd('/'));
+
+            if (!esito.UtenteTrovato || string.IsNullOrWhiteSpace(esito.Link))
+            {
+                erroreReimpostazione = "Utente non trovato: aggiorna la lista e riprova.";
+                return;
+            }
+
+            linkReimpostazione = esito.Link;
+            emailInviata = esito.EmailInviata;
+            Snackbar.Add(
+                esito.EmailInviata ? "Email di reimpostazione inviata." : "Email non inviata: copia il link.",
+                esito.EmailInviata ? Severity.Success : Severity.Warning);
+        }
+        catch (Exception eccezione)
+        {
+            erroreReimpostazione = "Invio non riuscito: " + eccezione.Message;
+        }
+        finally
+        {
+            invioLink = false;
+        }
+    }
+
+    private async Task CopiaLinkAsync()
+    {
+        if (string.IsNullOrWhiteSpace(linkReimpostazione))
+        {
+            return;
+        }
+
+        try
+        {
+            var copiato = await JS.InvokeAsync<bool>("asCoachCopiaTesto", linkReimpostazione);
+            Snackbar.Add(
+                copiato ? "Link copiato." : "Copia non disponibile: seleziona il link manualmente.",
+                copiato ? Severity.Success : Severity.Warning);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Copia non disponibile: seleziona il link manualmente.", Severity.Warning);
+        }
+    }
+
+    private void ChiudiReimposta()
+    {
+        reimpostaAperta = false;
+        utenteReimposta = null;
+        linkReimpostazione = null;
+        emailInviata = null;
+        erroreReimpostazione = null;
+        invioLink = false;
     }
 
     private void ChiediEliminazione(long id)
@@ -258,8 +412,8 @@
         public string Nome { get; set; } = string.Empty;
         public string Cognome { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string Telefono { get; set; } = string.Empty;
         public DateTime? DataDiNascita { get; set; }
-        public string Username { get; set; } = string.Empty;
         public string Ruolo { get; set; } = nameof(UserRole.USER);
     }
 
@@ -268,8 +422,8 @@
         public string Nome { get; set; } = string.Empty;
         public string Cognome { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string Telefono { get; set; } = string.Empty;
         public DateTime? DataDiNascita { get; set; }
-        public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string Ruolo { get; set; } = nameof(UserRole.USER);
     }

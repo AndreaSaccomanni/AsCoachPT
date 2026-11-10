@@ -11,16 +11,20 @@ public static class ClaimsPrincipalFactory
     /// <summary>Nome del claim che contiene il nome visualizzato.</summary>
     public const string NomeClaim = "nome";
 
+    /// <summary>Versione della sicurezza: cambia quando la password viene reimpostata.</summary>
+    public const string VersioneClaim = "versione";
+
     /// <summary>Crea il principal con identificativo, email, nome e ruolo dell'utente.</summary>
     public static ClaimsPrincipal Crea(Utente utente)
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, utente.Id.ToString()),
-            new(ClaimTypes.Name, utente.Username),
+            new(ClaimTypes.Name, utente.Email),
             new(ClaimTypes.Email, utente.Email),
             new(ClaimTypes.Role, (utente.Ruolo ?? UserRole.USER).ToString()),
-            new(NomeClaim, utente.Nome)
+            new(NomeClaim, utente.Nome),
+            new(VersioneClaim, utente.VersioneSicurezza.ToString())
         };
 
         var identita = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

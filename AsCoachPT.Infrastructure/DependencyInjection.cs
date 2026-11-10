@@ -1,3 +1,4 @@
+using AsCoachPT.Application.Models;
 using AsCoachPT.Application.Repositories;
 using AsCoachPT.Application.Services;
 using AsCoachPT.Infrastructure.Data;
@@ -54,6 +55,11 @@ public static class DependencyInjection
                 opzioni.Password = string.IsNullOrWhiteSpace(opzioni.Password)
                     ? Environment.GetEnvironmentVariable("MAIL_PASSWORD") ?? string.Empty
                     : opzioni.Password;
+                var mittenteDaAmbiente = Environment.GetEnvironmentVariable("MAIL_FROM");
+                if (!string.IsNullOrWhiteSpace(mittenteDaAmbiente))
+                {
+                    opzioni.From = mittenteDaAmbiente;
+                }
             });
 
         servizi.AddScoped<IUtenteRepository, UtenteRepository>();
@@ -74,8 +80,26 @@ public static class DependencyInjection
                     : opzioni.From;
             });
 
+        var smtpUsername = configurazione["Mail:Username"];
+        if (string.IsNullOrWhiteSpace(smtpUsername))
+        {
+            smtpUsername = Environment.GetEnvironmentVariable("MAIL_USERNAME");
+        }
+
+        var smtpPassword = configurazione["Mail:Password"];
+        if (string.IsNullOrWhiteSpace(smtpPassword))
+        {
+            smtpPassword = Environment.GetEnvironmentVariable("MAIL_PASSWORD");
+        }
+
         var resendApiKey = configurazione["Resend:ApiKey"] ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
-        if (!string.IsNullOrWhiteSpace(resendApiKey))
+        var usaSmtp = !string.IsNullOrWhiteSpace(smtpUsername) && !string.IsNullOrWhiteSpace(smtpPassword);
+
+        if (usaSmtp)
+        {
+            servizi.AddScoped<IEmailSender, SmtpEmailSender>();
+        }
+        else if (!string.IsNullOrWhiteSpace(resendApiKey))
         {
             servizi.AddHttpClient<IEmailSender, ResendEmailSender>(client =>
                 client.BaseAddress = new Uri("https://api.resend.com/"));
@@ -87,6 +111,13 @@ public static class DependencyInjection
         servizi.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 
         servizi.AddScoped<UtenteService>();
+        servizi.AddScoped<PasswordResetService>();
+        var emailStaff = configurazione["Mail:StaffNotificationRecipient"];
+        if (string.IsNullOrWhiteSpace(emailStaff))
+        {
+            emailStaff = "alessandrosaccomanni.pt@gmail.com";
+        }
+        servizi.AddSingleton(new StaffNotificationSettings(emailStaff));
         servizi.AddScoped<IndirizzoService>();
         servizi.AddScoped<ServizioService>();
         servizi.AddScoped<PrenotazioneService>();

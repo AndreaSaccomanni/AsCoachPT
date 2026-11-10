@@ -30,6 +30,7 @@
     {
         <MudTable Items="@Righe" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true" Elevation="2">
             <HeaderContent>
+                <MudTh>Azioni</MudTh>
                 <MudTh>#</MudTh>
                 <MudTh>Via</MudTh>
                 <MudTh>Civico</MudTh>
@@ -38,9 +39,22 @@
                 <MudTh>Nome Studio</MudTh>
                 <MudTh>Stato</MudTh>
                 <MudTh>Giorni</MudTh>
-                <MudTh>Azioni</MudTh>
             </HeaderContent>
             <RowTemplate Context="riga">
+                <MudTd DataLabel="Azioni">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
+                             AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft"
+                             AriaLabel="Azioni indirizzo">
+                        <MudMenuItem Icon="@(riga.Indirizzo.Attivo ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                     IconColor="@(riga.Indirizzo.Attivo ? Color.Warning : Color.Success)"
+                                     OnClick="() => CambiaStatoAsync(riga.Indirizzo)">
+                            @(riga.Indirizzo.Attivo ? "Disabilita" : "Abilita")
+                        </MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => ApriModifica(riga.Indirizzo)">Modifica</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                     OnClick="() => ChiediEliminazioneAsync(riga.Indirizzo.Id)">Elimina</MudMenuItem>
+                    </MudMenu>
+                </MudTd>
                 <MudTd DataLabel="#">@riga.Posizione</MudTd>
                 <MudTd DataLabel="Via">@riga.Indirizzo.Via</MudTd>
                 <MudTd DataLabel="Civico">@riga.Indirizzo.NumeroCivico</MudTd>
@@ -53,18 +67,6 @@
                     </span>
                 </MudTd>
                 <MudTd DataLabel="Giorni">@(riga.Indirizzo.Giorni.Count > 0 ? string.Join(" - ", riga.Indirizzo.Giorni) : "Nessun giorno assegnato")</MudTd>
-                <MudTd DataLabel="Azioni">
-                    <MudButton Variant="Variant.Text"
-                               Color="@(riga.Indirizzo.Attivo ? Color.Warning : Color.Success)"
-                               StartIcon="@(riga.Indirizzo.Attivo ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                               OnClick="() => CambiaStatoAsync(riga.Indirizzo)">
-                        @(riga.Indirizzo.Attivo ? "Disabilita" : "Abilita")
-                    </MudButton>
-                    <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="() => ApriModifica(riga.Indirizzo)">Modifica</MudButton>
-                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
-                               OnClick="() => ChiediEliminazioneAsync(riga.Indirizzo.Id)">Elimina</MudButton>
-                </MudTd>
             </RowTemplate>
         </MudTable>
     }

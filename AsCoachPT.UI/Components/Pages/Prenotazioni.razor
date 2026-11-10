@@ -9,6 +9,26 @@
 <MudContainer MaxWidth="MaxWidth.Large" Class="my-8">
     <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">@(isStaff ? "Tutte le prenotazioni" : "Le tue prenotazioni")</MudText>
 
+    @if (isStaff && notifiche.Count > 0)
+    {
+        <div class="notifiche-prenotazioni mb-4">
+            <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+                <MudText Typo="Typo.subtitle1"><strong>Notifiche prenotazioni</strong></MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                           OnClick="SegnaNotificheLetteAsync">Segna come lette</MudButton>
+            </div>
+            <ul>
+                @foreach (var notifica in notifiche)
+                {
+                    <li>
+                        <span>@notifica.Messaggio</span>
+                        <small>@notifica.CreataIl.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
     @if (loading)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -21,6 +41,7 @@
     {
         <MudTable Items="@Righe" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true" Elevation="2" Class="mt-4">
             <HeaderContent>
+                <MudTh>Azioni</MudTh>
                 <MudTh>#</MudTh>
                 <MudTh>Servizio</MudTh>
                 <MudTh>Data</MudTh>
@@ -31,9 +52,16 @@
                 {
                     <MudTh>Utente</MudTh>
                 }
-                <MudTh>Azioni</MudTh>
             </HeaderContent>
             <RowTemplate Context="riga">
+                <MudTd DataLabel="Azioni">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
+                             AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft"
+                             AriaLabel="Azioni prenotazione">
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => ApriModifica(riga.Prenotazione)">Modifica</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="() => ChiediEliminazione(riga.Prenotazione.Id)">Elimina</MudMenuItem>
+                    </MudMenu>
+                </MudTd>
                 <MudTd DataLabel="#">@riga.Posizione</MudTd>
                 <MudTd DataLabel="Servizio">@riga.Prenotazione.Servizio.NomeServizio</MudTd>
                 <MudTd DataLabel="Data">@riga.Prenotazione.DataOra.ToString("dd/MM/yyyy")</MudTd>
@@ -44,12 +72,6 @@
                 {
                     <MudTd DataLabel="Utente">@riga.Prenotazione.Utente.Nome @riga.Prenotazione.Utente.Cognome</MudTd>
                 }
-                <MudTd DataLabel="Azioni">
-                    <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="() => ApriModifica(riga.Prenotazione)">Modifica</MudButton>
-                    <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
-                               OnClick="() => ChiediEliminazione(riga.Prenotazione.Id)">Elimina</MudButton>
-                </MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -125,6 +147,7 @@
 
     private List<Prenotazione> prenotazioni = new();
     private List<Riga> Righe = new();
+    private List<NotificaPrenotazione> notifiche = new();
     private List<Servizio> servizi = new();
     private List<Indirizzo> indirizzi = new();
     private List<Indirizzo> indirizziModifica = new();
@@ -190,7 +213,17 @@
         prenotazioni = isStaff
             ? await PrenotazioniSvc.ElencaFutureAsync()
             : await PrenotazioniSvc.ElencaFuturePerUtenteAsync(actorId);
+        notifiche = isStaff
+            ? await PrenotazioniSvc.ElencaNotificheAsync()
+            : new();
         Righe = prenotazioni.Select((p, i) => new Riga(i + 1, p)).ToList();
+    }
+
+    private async Task SegnaNotificheLetteAsync()
+    {
+        await PrenotazioniSvc.SegnaNotificheLetteAsync();
+        notifiche = new();
+        Snackbar.Add("Notifiche segnate come lette", Severity.Success);
     }
 
     private long actorId;
