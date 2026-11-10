@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 
@@ -151,6 +152,16 @@ System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culturaItaliana;
 System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culturaItaliana;
 
 var applicazioneWeb = creatoreApp.Build();
+
+// Render termina TLS: senza questi header l'app genera redirect OAuth in HTTP
+// e Google rifiuta il redirect_uri (deve essere HTTPS).
+var opzioniProxy = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+opzioniProxy.KnownIPNetworks.Clear();
+opzioniProxy.KnownProxies.Clear();
+applicazioneWeb.UseForwardedHeaders(opzioniProxy);
 
 // Gestione errori e HTTPS solo fuori dallo sviluppo, come nel sito Maddalena.
 if (!applicazioneWeb.Environment.IsDevelopment())
