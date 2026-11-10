@@ -14,6 +14,7 @@ public sealed class PrenotazioneService(
     IPrenotazioneRepository prenotazioni,
     IUnitOfWork unitOfWork,
     IEmailSender emailSender,
+    StaffNotificationSettings notificheStaff,
     ILogger<PrenotazioneService> logger)
 {
     private const int PassoMinuti = 15;
@@ -32,6 +33,14 @@ public sealed class PrenotazioneService(
     /// <summary>Restituisce le prenotazioni collegate a uno studio.</summary>
     public Task<List<Prenotazione>> ElencaPerIndirizzoAsync(long indirizzoId, CancellationToken tokenAnnullamento = default) =>
         prenotazioni.ElencaPerIndirizzoAsync(indirizzoId, tokenAnnullamento);
+
+    /// <summary>Notifiche non lette per lo staff (modifiche e annullamenti fatti dagli utenti).</summary>
+    public Task<List<NotificaPrenotazione>> ElencaNotificheAsync(CancellationToken tokenAnnullamento = default) =>
+        prenotazioni.ElencaNotificheNonLetteAsync(tokenAnnullamento);
+
+    /// <summary>Segna come lette tutte le notifiche dello staff.</summary>
+    public Task SegnaNotificheLetteAsync(CancellationToken tokenAnnullamento = default) =>
+        prenotazioni.SegnaNotificheLetteAsync(tokenAnnullamento);
 
     /// <summary>Recupera una prenotazione o segnala che non esiste.</summary>
     public async Task<Prenotazione> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
@@ -146,6 +155,9 @@ public sealed class PrenotazioneService(
             throw new UnauthorizedAccessException("Non sei autorizzato a cancellare questa prenotazione");
         }
 
+        var avvisaStaff = !utenteAutenticato.IsStaff;
+        var messaggioStaff = avvisaStaff ? MessaggioNotifica(prenotazione, "annullato") : null;
+
         var contenuto = "Ciao " + prenotazione.Utente.Nome + ",\n\n"
             + "La tua prenotazione per il servizio '" + prenotazione.Servizio.NomeServizio + "' prevista per il " + prenotazione.DataOra.ToString("dd/MM/yyyy") +
             " alle: " + prenotazione.DataOra.ToString("HH:mm") + " a " + prenotazione.Indirizzo.Citta + ", " + prenotazione.Indirizzo.Via + " " +
@@ -154,6 +166,17 @@ public sealed class PrenotazioneService(
             + "puoi farlo direttamente accedendo alla tua area personale o contattandomi.\n\n"
             + "Grazie!\n"
             + "A presto, cordiali saluti,\n\nDott.Alessandro";
+
+        if (messaggioStaff is not null)
+        {
+            await prenotazioni.AggiungiNotificaAsync(new NotificaPrenotazione
+            {
+                PrenotazioneId = prenotazione.Id,
+                Tipo = "ANNULLAMENTO",
+                Messaggio = messaggioStaff,
+                CreataIl = DateTime.UtcNow
+            }, tokenAnnullamento);
+        }
 
         prenotazioni.Rimuovi(prenotazione);
         await unitOfWork.SalvaModificheAsync(tokenAnnullamento);
@@ -165,6 +188,11 @@ public sealed class PrenotazioneService(
                 tokenAnnullamento: tokenAnnullamento))
         {
             logger.LogWarning("Email di cancellazione non inviata per {Utente}", prenotazione.Utente.Username);
+        }
+
+        if (messaggioStaff is not null)
+        {
+            await InviaAvvisoStaffAsync(prenotazione, "annullata", messaggioStaff, tokenAnnullamento);
         }
     }
 
@@ -259,6 +287,20 @@ public sealed class PrenotazioneService(
 
         VerificaGiornoDiRicevimento(prenotazione.Indirizzo, prenotazione.DataOra);
 
+        var avvisaStaff = !utenteAutenticato.IsStaff;
+        var messaggioStaff = avvisaStaff ? MessaggioNotifica(prenotazione, "modificato") : null;
+
+        if (messaggioStaff is not null)
+        {
+            await prenotazioni.AggiungiNotificaAsync(new NotificaPrenotazione
+            {
+                PrenotazioneId = prenotazione.Id,
+                Tipo = "MODIFICA",
+                Messaggio = messaggioStaff,
+                CreataIl = DateTime.UtcNow
+            }, tokenAnnullamento);
+        }
+
         await unitOfWork.SalvaModificheAsync(tokenAnnullamento);
 
         var contenuto = "Ciao " + prenotazione.Utente.Nome + ",\n\n"
@@ -279,6 +321,11 @@ public sealed class PrenotazioneService(
                 tokenAnnullamento: tokenAnnullamento))
         {
             logger.LogWarning("Email di aggiornamento non inviata per {Utente}", prenotazione.Utente.Username);
+        }
+
+        if (messaggioStaff is not null)
+        {
+            await InviaAvvisoStaffAsync(prenotazione, "modificata", messaggioStaff, tokenAnnullamento);
         }
 
         return prenotazione;
@@ -348,6 +395,47 @@ public sealed class PrenotazioneService(
         var giorni = GiorniStudio.ElencoLeggibile(GiorniStudio.DaStudi(new[] { studio }));
         throw new InvalidOperationException(
             $"Lo studio {studio.NomeStudio} non riceve il {GiorniStudio.NomeItaliano(dataOra.DayOfWeek)}. Giorni di ricevimento: {giorni}.");
+    }
+
+    /// <summary>Testo mostrato nella pagina Prenotazioni quando un utente modifica o annulla.</summary>
+    private static string MessaggioNotifica(Prenotazione prenotazione, string azione) =>
+        $"{prenotazione.Utente.Nome} {prenotazione.Utente.Cognome} ha {azione} la prenotazione per " +
+        $"{prenotazione.Servizio.NomeServizio} del {prenotazione.DataOra:dd/MM/yyyy} alle {prenotazione.DataOra:HH:mm} " +
+        $"({prenotazione.Indirizzo.NomeStudio}, {prenotazione.Indirizzo.Citta}).";
+
+    /// <summary>Invia l'avviso via email a tutti gli amministratori e personal trainer.</summary>
+    private async Task InviaAvvisoStaffAsync(
+        Prenotazione prenotazione,
+        string azione,
+        string messaggio,
+        CancellationToken tokenAnnullamento)
+    {
+        var contenuto = "Avviso dal sito AsCoach:\n\n"
+            + messaggio + "\n\n"
+            + "Dettagli:\n"
+            + "Utente: " + prenotazione.Utente.Nome + " " + prenotazione.Utente.Cognome + "\n"
+            + "Email: " + prenotazione.Utente.Email + "\n"
+            + "Servizio: " + prenotazione.Servizio.NomeServizio + "\n"
+            + "Data: " + prenotazione.DataOra.ToString("dd/MM/yyyy") + "\n"
+            + "Ora: " + prenotazione.DataOra.ToString("HH:mm") + "\n"
+            + "Studio: " + prenotazione.Indirizzo.NomeStudio + " - " + prenotazione.Indirizzo.IndirizzoCompleto + "\n"
+            + (!string.IsNullOrWhiteSpace(prenotazione.Note) ? "Note: " + prenotazione.Note + "\n" : "")
+            + "\nAccedi alla pagina Prenotazioni per vedere la notifica.";
+
+        var destinatario = notificheStaff.Email;
+        if (string.IsNullOrWhiteSpace(destinatario))
+        {
+            return;
+        }
+
+        if (!await emailSender.InviaAsync(
+                destinatario,
+                $"Prenotazione {azione} - {prenotazione.Utente.Nome} {prenotazione.Utente.Cognome}",
+                contenuto,
+                tokenAnnullamento: tokenAnnullamento))
+        {
+            logger.LogWarning("Avviso prenotazione {Azione} non inviato a {Email}", azione, destinatario);
+        }
     }
 
     private async Task<bool> IsSovrapposizioneAsync(DateTime inizio, DateTime fine, long? prenotazioneId, CancellationToken tokenAnnullamento)

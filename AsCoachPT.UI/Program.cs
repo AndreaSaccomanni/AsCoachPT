@@ -1,12 +1,14 @@
 using System.Security.Claims;
 using AsCoachPT.Application.Models;
 using AsCoachPT.Application.Services;
+using AsCoachPT.Domain.Models;
 using AsCoachPT.Infrastructure;
 using AsCoachPT.Infrastructure.Data;
 using AsCoachPT.UI.Components;
 using AsCoachPT.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -20,6 +22,22 @@ var avvioSessione = Guid.NewGuid().ToString("N");
 const string ClaimAvvio = "avvio";
 const string CookieInizioSessione = "ascoach.session_start";
 var durataSessione = TimeSpan.FromMinutes(30);
+
+var googleClientId = creatoreApp.Configuration["Authentication:Google:ClientId"];
+if (string.IsNullOrWhiteSpace(googleClientId))
+{
+    googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+}
+
+var googleClientSecret = creatoreApp.Configuration["Authentication:Google:ClientSecret"];
+if (string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+}
+
+var googleAbilitato = !string.IsNullOrWhiteSpace(googleClientId)
+    && !string.IsNullOrWhiteSpace(googleClientSecret);
+creatoreApp.Services.AddSingleton(new GoogleLoginSettings(googleAbilitato));
 
 // Render e altri host forniscono la porta tramite variabile d'ambiente.
 var portaDaAmbiente = Environment.GetEnvironmentVariable("PORT");
@@ -37,7 +55,7 @@ creatoreApp.Services.AddMudServices();
 creatoreApp.Services.AddInfrastructure(creatoreApp.Configuration);
 creatoreApp.Services.AddResponseCompression(opzioni => opzioni.EnableForHttps = true);
 
-creatoreApp.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+var autenticazione = creatoreApp.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opzioni =>
     {
         opzioni.LoginPath = "/login";
@@ -56,7 +74,32 @@ creatoreApp.Services.AddAuthentication(CookieAuthenticationDefaults.Authenticati
             OnValidatePrincipal = async contesto =>
             {
                 var avvio = contesto.Principal?.FindFirst(ClaimAvvio)?.Value;
-                if (!string.Equals(avvio, avvioSessione, StringComparison.Ordinal))
+                var utenteId = contesto.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var versione = contesto.Principal?.FindFirst(ClaimsPrincipalFactory.VersioneClaim)?.Value;
+
+                var valido = string.Equals(avvio, avvioSessione, StringComparison.Ordinal);
+                var idUtente = 0L;
+                var versioneSessione = 0;
+
+                if (valido)
+                {
+                    valido = long.TryParse(utenteId, out idUtente)
+                        && int.TryParse(versione, out versioneSessione);
+                }
+
+                if (valido)
+                {
+                    var database = contesto.HttpContext.RequestServices.GetRequiredService<AsCoachDbContext>();
+                    var versioneAttuale = await database.Utenti
+                        .AsNoTracking()
+                        .Where(utente => utente.Id == idUtente)
+                        .Select(utente => (int?)utente.VersioneSicurezza)
+                        .FirstOrDefaultAsync();
+
+                    valido = versioneAttuale == versioneSessione;
+                }
+
+                if (!valido)
                 {
                     contesto.RejectPrincipal();
                     await contesto.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -65,6 +108,41 @@ creatoreApp.Services.AddAuthentication(CookieAuthenticationDefaults.Authenticati
             }
         };
     });
+
+if (googleAbilitato)
+{
+    autenticazione
+        .AddCookie("GoogleExternal", opzioni =>
+        {
+            opzioni.Cookie.Name = "ascoach.google.external";
+            opzioni.Cookie.HttpOnly = true;
+            opzioni.Cookie.SameSite = SameSiteMode.Lax;
+            opzioni.Cookie.IsEssential = true;
+            opzioni.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+            opzioni.SlidingExpiration = false;
+        })
+        .AddGoogle(opzioni =>
+        {
+            opzioni.ClientId = googleClientId!;
+            opzioni.ClientSecret = googleClientSecret!;
+            opzioni.SignInScheme = "GoogleExternal";
+            opzioni.CallbackPath = "/signin-google";
+            opzioni.SaveTokens = false;
+            opzioni.Scope.Add("email");
+            opzioni.Scope.Add("profile");
+
+            // L'email deve essere verificata da Google per poter accedere.
+            opzioni.ClaimActions.MapJsonKey("email_verified", "email_verified");
+
+            opzioni.Events.OnRemoteFailure = contesto =>
+            {
+                contesto.Response.Redirect("/login?googleError=failed");
+                contesto.HandleResponse();
+                return Task.CompletedTask;
+            };
+        });
+}
+
 creatoreApp.Services.AddAuthorization();
 
 // Date e calendari in italiano (etichette dei picker MudBlazor).
@@ -116,39 +194,67 @@ applicazioneWeb.MapPost("/auth/login", async (HttpContext http, UtenteService ut
         return Results.BadRequest();
     }
 
-    var username = form["username"].ToString().Trim();
+    var identificativo = form["email"].ToString().Trim();
+    if (string.IsNullOrWhiteSpace(identificativo))
+    {
+        // Compatibilità con il vecchio form che inviava "username".
+        identificativo = form["username"].ToString().Trim();
+    }
+
     var password = form["password"].ToString();
 
-    var utente = await utenti.VerificaCredenzialiAsync(username, password);
+    var utente = await utenti.VerificaCredenzialiAsync(identificativo, password);
     if (utente is null)
     {
         return Results.Redirect("/login?error=1");
     }
 
-    var principal = ClaimsPrincipalFactory.Crea(utente);
-    principal.Identities.First().AddClaim(new Claim(ClaimAvvio, avvioSessione));
-
-    await http.SignInAsync(
-        CookieAuthenticationDefaults.AuthenticationScheme,
-        principal,
-        new AuthenticationProperties { IsPersistent = false });
-
-    // Cookie leggibile dal client: fa partire il conto alla rovescia assoluto
-    // di 30 minuti e sparisce alla chiusura del browser (cookie di sessione).
-    http.Response.Cookies.Append(
-        CookieInizioSessione,
-        DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
-        new CookieOptions
-        {
-            HttpOnly = false,
-            IsEssential = true,
-            SameSite = SameSiteMode.Lax,
-            Secure = http.Request.IsHttps,
-            Path = "/"
-        });
-
+    await AccediUtenteAsync(http, utente);
     return Results.Redirect("/");
 }).WithMetadata(new RequireAntiforgeryTokenAttribute(false));
+
+applicazioneWeb.MapGet("/auth/google", (HttpContext http) =>
+{
+    if (!googleAbilitato)
+    {
+        return Results.Redirect("/login?googleError=config");
+    }
+
+    return Results.Challenge(
+        new AuthenticationProperties { RedirectUri = "/auth/google/callback" },
+        new[] { GoogleDefaults.AuthenticationScheme });
+});
+
+applicazioneWeb.MapGet("/auth/google/callback", async (HttpContext http, UtenteService utenti) =>
+{
+    var risultato = await http.AuthenticateAsync("GoogleExternal");
+    if (!risultato.Succeeded || risultato.Principal is null)
+    {
+        return Results.Redirect("/login?googleError=failed");
+    }
+
+    var principalEsterno = risultato.Principal;
+    var email = principalEsterno.FindFirstValue(ClaimTypes.Email)
+        ?? principalEsterno.FindFirstValue("email");
+    var verificata = principalEsterno.FindFirstValue("email_verified");
+
+    await http.SignOutAsync("GoogleExternal");
+
+    if (!bool.TryParse(verificata, out var emailVerificata) || !emailVerificata || string.IsNullOrWhiteSpace(email))
+    {
+        return Results.Redirect("/login?googleError=unverified");
+    }
+
+    var utente = await utenti.TrovaPerEmailAsync(email);
+    if (utente is null)
+    {
+        // Nessuna registrazione automatica: Google accede solo ad account già esistenti.
+        return Results.Redirect("/login?googleError=nonexistent");
+    }
+
+    await AccediUtenteAsync(http, utente);
+    return Results.Redirect("/");
+});
 
 applicazioneWeb.MapPost("/auth/register", async (HttpContext http, UtenteService utenti, IFormCollection form) =>
 {
@@ -180,7 +286,7 @@ applicazioneWeb.MapPost("/auth/register", async (HttpContext http, UtenteService
         Cognome = form["cognome"].ToString().Trim(),
         DataDiNascita = dataDiNascita,
         Email = form["email"].ToString().Trim(),
-        Username = form["username"].ToString().Trim(),
+        Telefono = form["telefono"].ToString().Trim(),
         Password = password,
         Ruolo = "USER"
     };
@@ -214,6 +320,30 @@ using (var ambito = applicazioneWeb.Services.CreateScope())
 }
 
 applicazioneWeb.Run();
+
+// Accede un utente già verificato (password o Google) con cookie e scadenza assoluta.
+async Task AccediUtenteAsync(HttpContext http, Utente utente)
+{
+    var principal = ClaimsPrincipalFactory.Crea(utente);
+    principal.Identities.First().AddClaim(new Claim(ClaimAvvio, avvioSessione));
+
+    await http.SignInAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        principal,
+        new AuthenticationProperties { IsPersistent = false });
+
+    http.Response.Cookies.Append(
+        CookieInizioSessione,
+        DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+        new CookieOptions
+        {
+            HttpOnly = false,
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = http.Request.IsHttps,
+            Path = "/"
+        });
+}
 
 // Blocca richieste cross-origin verso gli endpoint di autenticazione (difesa CSRF aggiuntiva).
 static bool StessaOrigine(HttpRequest richiesta)

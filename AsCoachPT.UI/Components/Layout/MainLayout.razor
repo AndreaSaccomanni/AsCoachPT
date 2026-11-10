@@ -17,21 +17,24 @@
 
 @code {
     /// <summary>
-    /// Palette chiara e morbida in toni salvia e sabbia: solo configurazione
+    /// Palette chiara e morbida in toni oliva e sabbia: solo configurazione
     /// visiva dei componenti MudBlazor, nessun comportamento.
     /// </summary>
     private readonly MudTheme Tema = new()
     {
         PaletteLight = new PaletteLight
         {
-            Primary = "#4E6A55",
-            Secondary = "#8CA68C",
+            Primary = "#6B8E23",
+            PrimaryDarken = "#57731D",
+            PrimaryLighten = "#8FA94A",
+            PrimaryContrastText = "#FFFFFF",
+            Secondary = "#8FA94A",
             Tertiary = "#C9B79C",
             Background = "#F7F7F2",
             Surface = "#FFFFFF",
             AppbarBackground = "#F7F7F2",
             AppbarText = "#2A352D",
-            DrawerBackground = "#EDF2EA",
+            DrawerBackground = "#F2F4E9",
             DrawerText = "#2A352D",
             TextPrimary = "#2A352D",
             TextSecondary = "rgba(42, 53, 45, 0.64)",

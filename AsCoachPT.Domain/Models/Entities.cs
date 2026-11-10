@@ -9,8 +9,12 @@ public class Utente
     public string Cognome { get; set; } = string.Empty;
     public DateOnly? DataDiNascita { get; set; }
     public string Email { get; set; } = string.Empty;
+    public string Telefono { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public string? ResetTokenHash { get; set; }
+    public DateTime? ResetTokenScadenza { get; set; }
+    public int VersioneSicurezza { get; set; } = 1;
     public UserRole? Ruolo { get; set; }
     public List<Prenotazione> Prenotazioni { get; set; } = new();
 
@@ -104,4 +108,15 @@ public class Prenotazione
     public long IndirizzoId { get; set; }
     public Indirizzo Indirizzo { get; set; } = null!;
     public string? Note { get; set; }
+}
+
+/// <summary>Avviso per lo staff generato quando un utente modifica o annulla una prenotazione.</summary>
+public class NotificaPrenotazione
+{
+    public long Id { get; set; }
+    public long? PrenotazioneId { get; set; }
+    public string Tipo { get; set; } = string.Empty;
+    public string Messaggio { get; set; } = string.Empty;
+    public DateTime CreataIl { get; set; } = DateTime.UtcNow;
+    public bool Letta { get; set; }
 }

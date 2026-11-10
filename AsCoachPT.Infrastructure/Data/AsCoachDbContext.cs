@@ -14,6 +14,7 @@ public class AsCoachDbContext : DbContext
     public DbSet<Consulenza> Consulenze => Set<Consulenza>();
     public DbSet<Massaggio> Massaggi => Set<Massaggio>();
     public DbSet<Prenotazione> Prenotazioni => Set<Prenotazione>();
+    public DbSet<NotificaPrenotazione> NotifichePrenotazioni => Set<NotificaPrenotazione>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,8 +27,12 @@ public class AsCoachDbContext : DbContext
             e.Property(x => x.Cognome).HasColumnName("cognome").IsRequired();
             e.Property(x => x.DataDiNascita).HasColumnName("data_di_nascita");
             e.Property(x => x.Email).HasColumnName("email").IsRequired();
+            e.Property(x => x.Telefono).HasColumnName("telefono").HasMaxLength(30);
             e.Property(x => x.Username).HasColumnName("username").IsRequired();
             e.Property(x => x.Password).HasColumnName("password").IsRequired();
+            e.Property(x => x.ResetTokenHash).HasColumnName("reset_token_hash");
+            e.Property(x => x.ResetTokenScadenza).HasColumnName("reset_token_scadenza");
+            e.Property(x => x.VersioneSicurezza).HasColumnName("versione_sicurezza").HasDefaultValue(1);
             e.Property(x => x.Ruolo).HasColumnName("ruolo").HasConversion<string>();
             e.HasIndex(x => x.Email).IsUnique();
             e.HasIndex(x => x.Username).IsUnique();
@@ -91,6 +96,18 @@ public class AsCoachDbContext : DbContext
             e.Property(x => x.Note).HasColumnName("note");
             e.HasOne(x => x.Servizio).WithMany().HasForeignKey(x => x.ServizioId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Indirizzo).WithMany().HasForeignKey(x => x.IndirizzoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<NotificaPrenotazione>(e =>
+        {
+            e.ToTable("notifiche_prenotazioni");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            e.Property(x => x.PrenotazioneId).HasColumnName("prenotazione_id");
+            e.Property(x => x.Tipo).HasColumnName("tipo");
+            e.Property(x => x.Messaggio).HasColumnName("messaggio");
+            e.Property(x => x.CreataIl).HasColumnName("creata_il");
+            e.Property(x => x.Letta).HasColumnName("letta");
         });
     }
 }

@@ -177,6 +177,29 @@ window.asCoachModal = function (apri) {
     }
 };
 
+// Copia un testo negli appunti; restituisce false se il browser non lo consente.
+window.asCoachCopiaTesto = async function (testo) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(testo);
+            return true;
+        }
+
+        const area = document.createElement("textarea");
+        area.value = testo;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        const copiato = document.execCommand("copy");
+        document.body.removeChild(area);
+        return copiato;
+    } catch {
+        return false;
+    }
+};
+
 // Usato dai componenti Blazor per distinguere telefono e desktop senza ricorrere a eval.
 window.asCoachIsMobile = function () {
     return window.matchMedia("(max-width: 767.98px)").matches;

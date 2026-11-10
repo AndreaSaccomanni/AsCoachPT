@@ -22,7 +22,7 @@ public class RegisterRequest
     public string Cognome { get; set; } = string.Empty;
     public DateOnly? DataDiNascita { get; set; }
     public string Email { get; set; } = string.Empty;
-    public string Username { get; set; } = string.Empty;
+    public string Telefono { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string? Ruolo { get; set; }
 }
