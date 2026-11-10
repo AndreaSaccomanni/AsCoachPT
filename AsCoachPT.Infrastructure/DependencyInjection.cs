@@ -75,9 +75,15 @@ public static class DependencyInjection
                 opzioni.ApiKey = string.IsNullOrWhiteSpace(opzioni.ApiKey)
                     ? Environment.GetEnvironmentVariable("RESEND_API_KEY") ?? string.Empty
                     : opzioni.ApiKey;
-                opzioni.From = string.IsNullOrWhiteSpace(opzioni.From)
-                    ? Environment.GetEnvironmentVariable("RESEND_FROM") ?? "onboarding@resend.dev"
-                    : opzioni.From;
+                var mittenteResend = Environment.GetEnvironmentVariable("RESEND_FROM");
+                if (!string.IsNullOrWhiteSpace(mittenteResend))
+                {
+                    opzioni.From = mittenteResend;
+                }
+                else if (string.IsNullOrWhiteSpace(opzioni.From))
+                {
+                    opzioni.From = "onboarding@resend.dev";
+                }
                 var rispostaDaAmbiente = Environment.GetEnvironmentVariable("RESEND_REPLY_TO");
                 if (!string.IsNullOrWhiteSpace(rispostaDaAmbiente))
                 {
