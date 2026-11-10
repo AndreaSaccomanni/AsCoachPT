@@ -78,6 +78,11 @@ public static class DependencyInjection
                 opzioni.From = string.IsNullOrWhiteSpace(opzioni.From)
                     ? Environment.GetEnvironmentVariable("RESEND_FROM") ?? "onboarding@resend.dev"
                     : opzioni.From;
+                var rispostaDaAmbiente = Environment.GetEnvironmentVariable("RESEND_REPLY_TO");
+                if (!string.IsNullOrWhiteSpace(rispostaDaAmbiente))
+                {
+                    opzioni.ReplyTo = rispostaDaAmbiente;
+                }
             });
 
         var smtpUsername = configurazione["Mail:Username"];
@@ -93,13 +98,15 @@ public static class DependencyInjection
         }
 
         var resendApiKey = configurazione["Resend:ApiKey"] ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
+        var providerEmail = configurazione["Email:Provider"] ?? Environment.GetEnvironmentVariable("EMAIL_PROVIDER");
         var usaSmtp = !string.IsNullOrWhiteSpace(smtpUsername) && !string.IsNullOrWhiteSpace(smtpPassword);
+        var forzaResend = string.Equals(providerEmail, "Resend", StringComparison.OrdinalIgnoreCase);
+        var forzaSmtp = string.Equals(providerEmail, "Smtp", StringComparison.OrdinalIgnoreCase);
 
-        if (usaSmtp)
-        {
-            servizi.AddScoped<IEmailSender, SmtpEmailSender>();
-        }
-        else if (!string.IsNullOrWhiteSpace(resendApiKey))
+        var usaResend = !string.IsNullOrWhiteSpace(resendApiKey)
+            && (forzaResend || (!usaSmtp && !forzaSmtp));
+
+        if (usaResend)
         {
             servizi.AddHttpClient<IEmailSender, ResendEmailSender>(client =>
                 client.BaseAddress = new Uri("https://api.resend.com/"));
