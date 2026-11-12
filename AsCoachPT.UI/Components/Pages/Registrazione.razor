@@ -12,33 +12,38 @@
             }
 
             <form method="post" action="/auth/register">
-                <div class="mt-2">
-                    <label class="form-label" for="nome">Nome</label>
-                    <input class="form-control" id="nome" name="nome" type="text" placeholder="Inserisci il tuo nome" required />
+                <div class="mt-2 campo-flottante">
+                    <input class="form-control" id="nome" name="nome" type="text" placeholder=" " required />
+                    <label class="campo-etichetta" for="nome">Nome</label>
+                </div>
+                <div class="mt-2 campo-flottante">
+                    <input class="form-control" id="cognome" name="cognome" type="text" placeholder=" " required />
+                    <label class="campo-etichetta" for="cognome">Cognome</label>
                 </div>
                 <div class="mt-2">
-                    <label class="form-label" for="cognome">Cognome</label>
-                    <input class="form-control" id="cognome" name="cognome" type="text" placeholder="Inserisci il tuo cognome" required />
+                    <MudDatePicker @bind-Date="dataDiNascita"
+                                   Label="Data di Nascita"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   FirstDayOfWeek="DayOfWeek.Monday"
+                                   DateFormat="dd/MM/yyyy" />
+                    <input type="hidden" name="dataDiNascita" value="@(dataDiNascita?.ToString("yyyy-MM-dd"))" />
                 </div>
-                <div class="mt-2">
-                    <label class="form-label" for="dataDiNascita">Data di Nascita</label>
-                    <input class="form-control" id="dataDiNascita" name="dataDiNascita" type="date" />
+                <div class="mt-2 campo-flottante">
+                    <input class="form-control" id="email" name="email" type="email" placeholder=" " required />
+                    <label class="campo-etichetta" for="email">Email</label>
                 </div>
-                <div class="mt-2">
-                    <label class="form-label" for="email">Email</label>
-                    <input class="form-control" id="email" name="email" type="email" placeholder="Inserisci la tua email" required />
+                <div class="mt-2 campo-flottante">
+                    <input class="form-control" id="telefono" name="telefono" type="tel" placeholder=" " required autocomplete="tel" />
+                    <label class="campo-etichetta" for="telefono">Numero di telefono</label>
                 </div>
-                <div class="mt-2">
-                    <label class="form-label" for="telefono">Numero di telefono</label>
-                    <input class="form-control" id="telefono" name="telefono" type="tel" placeholder="Inserisci il numero di telefono" required autocomplete="tel" />
+                <div class="mt-2 campo-flottante">
+                    <input class="form-control" id="password" name="password" type="password" placeholder=" " required autocomplete="new-password" />
+                    <label class="campo-etichetta" for="password">Password</label>
                 </div>
-                <div class="mt-2">
-                    <label class="form-label" for="password">Password</label>
-                    <input class="form-control" id="password" name="password" type="password" placeholder="Inserisci la tua password" required autocomplete="new-password" />
-                </div>
-                <div class="mt-2">
-                    <label class="form-label" for="confirmPassword">Conferma Password</label>
-                    <input class="form-control" id="confirmPassword" name="confirmPassword" type="password" placeholder="Conferma la tua password" required autocomplete="new-password" />
+                <div class="mt-2 campo-flottante">
+                    <input class="form-control" id="confirmPassword" name="confirmPassword" type="password" placeholder=" " required autocomplete="new-password" />
+                    <label class="campo-etichetta" for="confirmPassword">Conferma Password</label>
                 </div>
                 <button class="btn btn-primary w-100 mt-3 mb-5" type="submit">Registrati ed effettua il Login</button>
             </form>
@@ -49,4 +54,7 @@
 @code {
     [SupplyParameterFromQuery(Name = "error")]
     public string? Error { get; set; }
+
+    /// <summary>Data di nascita scelta nel calendario, inviata al server dal campo nascosto.</summary>
+    private DateTime? dataDiNascita;
 }

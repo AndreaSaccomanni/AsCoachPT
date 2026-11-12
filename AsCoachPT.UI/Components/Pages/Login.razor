@@ -42,13 +42,13 @@
             }
 
             <form method="post" action="/auth/login">
-                <div class="mb-3">
-                    <label class="form-label" for="email">Email</label>
-                    <input class="form-control" id="email" name="email" type="text" inputmode="email" placeholder="Inserisci la tua email" required autocomplete="username" />
+                <div class="mb-3 campo-flottante">
+                    <input class="form-control" id="email" name="email" type="text" inputmode="email" placeholder=" " required autocomplete="username" />
+                    <label class="campo-etichetta" for="email">Email</label>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label" for="password">Password</label>
-                    <input class="form-control" id="password" name="password" type="password" placeholder="Inserisci la password" required autocomplete="current-password" />
+                <div class="mb-3 campo-flottante">
+                    <input class="form-control" id="password" name="password" type="password" placeholder=" " required autocomplete="current-password" />
+                    <label class="campo-etichetta" for="password">Password</label>
                 </div>
                 <button class="btn btn-primary w-100 mt-3" type="submit">Login</button>
             </form>

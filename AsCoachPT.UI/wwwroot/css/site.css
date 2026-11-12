@@ -481,14 +481,24 @@ h1:focus-visible {
   bottom: -1px;
   left: 0;
   z-index: 1;
-  height: 34vh;
+  height: 72vh;
   pointer-events: none;
+  /* Curva "smootherstep": derivata e curvatura nulle ai due estremi, quindi
+     la foto non presenta né un inizio né una fine percepibili e il colore
+     finale coincide con quello della sezione successiva. */
   background: linear-gradient(
     180deg,
     rgba(227, 233, 210, 0) 0%,
-    rgba(227, 233, 210, 0.18) 28%,
-    rgba(227, 233, 210, 0.52) 58%,
-    rgba(227, 233, 210, 0.86) 84%,
+    rgba(227, 233, 210, 0) 52%,
+    rgba(227, 233, 210, 0.009) 56.8%,
+    rgba(227, 233, 210, 0.058) 61.6%,
+    rgba(227, 233, 210, 0.163) 66.4%,
+    rgba(227, 233, 210, 0.317) 71.2%,
+    rgba(227, 233, 210, 0.5) 76%,
+    rgba(227, 233, 210, 0.683) 80.8%,
+    rgba(227, 233, 210, 0.837) 85.6%,
+    rgba(227, 233, 210, 0.942) 90.4%,
+    rgba(227, 233, 210, 0.991) 95.2%,
     var(--home) 100%
   );
 }
@@ -770,84 +780,296 @@ h1:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
-  background: rgba(42, 53, 45, 0.35);
-  backdrop-filter: blur(6px);
+  padding: 1.5rem;
+  background: rgba(30, 40, 33, 0.55);
+  backdrop-filter: blur(8px) saturate(1.04);
   animation: modalFade 0.25s var(--ease) both;
 }
 
 .modal-servizio-panel {
-  display: flex;
-  flex-direction: column;
-  width: min(600px, 100%);
-  max-height: min(80vh, 700px);
+  --dialog-inset: clamp(1.25rem, 1.9vw, 1.7rem);
+  --dialog-gap: 1.1rem;
+  --passo-numero: 2.05rem;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  width: min(920px, 100%);
+  max-height: min(94vh, 860px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
-  box-shadow: 0 30px 70px rgba(42, 53, 45, 0.22);
+  box-shadow: 0 40px 90px rgba(30, 40, 33, 0.3);
+  overflow: hidden;
   outline: none;
-  animation: modalRise 0.4s var(--ease) both;
+  animation: modalRise 0.45s var(--ease) both;
+}
+
+.modal-servizio-media {
+  position: relative;
+  margin: 0;
+  min-height: 0;
+  background: var(--ink);
+}
+
+.modal-servizio-media img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: modalZoom 1.3s var(--ease) both;
+}
+
+.modal-servizio-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(30, 40, 33, 0.42) 0%,
+    rgba(30, 40, 33, 0) 38%,
+    rgba(30, 40, 33, 0) 72%,
+    rgba(30, 40, 33, 0.34) 100%
+  );
+  pointer-events: none;
+}
+
+.modal-servizio-etichetta {
+  position: absolute;
+  top: var(--dialog-inset);
+  left: var(--dialog-inset);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem 0.45rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: var(--radius-pill);
+  background: rgba(30, 40, 33, 0.4);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.modal-servizio-etichetta-numero {
+  padding-left: 0.6rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+
+.modal-servizio-contenuto {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .modal-servizio-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.6rem 1.6rem 1rem;
-  border-bottom: 1px solid var(--line);
+  gap: var(--dialog-gap);
+  padding: var(--dialog-inset) var(--dialog-inset) 0;
+}
+
+.modal-servizio-head .section-eyebrow {
+  margin-bottom: 0.7rem;
 }
 
 .modal-servizio-head h5 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: clamp(1.4rem, 2vw, 1.7rem);
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.14;
+  letter-spacing: -0.01em;
   text-align: left;
+  color: var(--ink);
+}
+
+.modal-servizio-lead {
+  max-width: 52ch;
+  margin: var(--dialog-gap) 0 0;
+  font-size: 0.9rem;
+  line-height: 1.58;
+  color: var(--muted);
 }
 
 .modal-servizio-close {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 2.3rem;
-  height: 2.3rem;
+  width: 2.4rem;
+  height: 2.4rem;
   border: 1px solid var(--line);
   border-radius: 50%;
-  background: transparent;
+  background: #fff;
   color: var(--muted);
+  box-shadow: 0 6px 18px rgba(42, 53, 45, 0.08);
   transition:
     border-color 0.3s var(--ease),
-    color 0.3s var(--ease);
+    background 0.3s var(--ease),
+    color 0.3s var(--ease),
+    transform 0.3s var(--ease);
 }
 
 .modal-servizio-close:hover,
 .modal-servizio-close:focus-visible {
   border-color: var(--sage-deep);
-  color: var(--sage-deep);
+  background: var(--sage-deep);
+  color: #fff;
+  transform: rotate(90deg);
 }
 
 .modal-servizio-body {
-  padding: 1.3rem 1.6rem 1.6rem;
+  padding: var(--dialog-inset);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.modal-servizio-body li {
-  margin-bottom: 0.9rem;
-  font-size: 0.94rem;
-  line-height: 1.65;
+.modal-servizio-dettagli {
+  display: grid;
+  gap: var(--dialog-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.modal-servizio-passo {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--passo-numero) minmax(0, 1fr);
+  gap: 0.9rem;
+  animation: passoIn 0.5s var(--ease) both;
+}
+
+.modal-servizio-passo:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.modal-servizio-passo:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.modal-servizio-passo:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.modal-servizio-passo:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+/* Connettore tra un punto e il successivo: corre a fianco del testo fino al
+   pallino seguente, che lo copre in cima. L'ultimo punto non ne ha uno
+   (selettore :not(:last-child)): nessuna linea scende oltre l'ultimo punto. */
+.modal-servizio-passo:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--passo-numero) + 0.25rem);
+  bottom: calc(-1 * var(--dialog-gap) + 0.15rem);
+  left: calc(var(--passo-numero) / 2 - 1px);
+  width: 2px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    rgba(107, 142, 35, 0.42) 0%,
+    rgba(107, 142, 35, 0.18) 100%
+  );
+}
+
+.modal-servizio-passo-numero {
+  display: grid;
+  place-items: center;
+  width: var(--passo-numero);
+  height: var(--passo-numero);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--mist);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--sage-deep);
+}
+
+.modal-servizio-passo-testo h6 {
+  margin: 0 0 0.2rem;
+  /* Centra otticamente la prima riga del titolo con il pallino numerato:
+     (altezza pallino - altezza riga) / 2. */
+  padding-top: calc((var(--passo-numero) - 1.4em) / 2);
+  font-family: var(--font-body);
+  font-size: 0.93rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.modal-servizio-passo-testo p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.58;
   color: var(--muted);
 }
 
-.modal-servizio-body li:last-child {
-  margin-bottom: 0;
-}
-
-.modal-servizio-body strong {
+.modal-servizio-passo-testo strong {
   color: var(--ink);
   font-weight: 600;
+}
+
+@media (max-width: 899.98px) {
+  .modal-servizio-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    width: min(560px, 100%);
+  }
+
+  .modal-servizio-media {
+    min-height: 0;
+    height: 150px;
+  }
+}
+
+/* Finestre basse: il dialogo si compatta per mostrare tutti i dettagli
+   senza scorrere al suo interno. */
+@media (max-height: 660px) {
+  .modal-servizio {
+    padding: 1rem;
+  }
+
+  .modal-servizio-panel {
+    --dialog-inset: 1.05rem;
+    --dialog-gap: 0.7rem;
+    --passo-numero: 1.8rem;
+  }
+
+  .modal-servizio-head h5 {
+    font-size: 1.3rem;
+  }
+
+  .modal-servizio-head .section-eyebrow {
+    margin-bottom: 0.45rem;
+  }
+
+  .modal-servizio-lead {
+    margin-top: 0.7rem;
+    font-size: 0.84rem;
+  }
+
+  .modal-servizio-passo-testo h6 {
+    font-size: 0.9rem;
+  }
+
+  .modal-servizio-passo-testo p {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
 }
 
 @keyframes modalFade {
@@ -864,6 +1086,30 @@ h1:focus-visible {
   from {
     opacity: 0;
     transform: translateY(16px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes modalZoom {
+  from {
+    opacity: 0.55;
+    transform: scale(1.07);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes passoIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
 
   to {
@@ -1046,19 +1292,29 @@ h1:focus-visible {
   padding: 0 1rem;
 }
 
+/* Card in vetro: superficie chiara ma quasi trasparente, così non stacca
+   dalla sezione salvia su cui poggia. */
 .form-card {
-  padding: clamp(1.5rem, 3vw, 2.2rem);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
+  position: relative;
+  padding: clamp(1.6rem, 3vw, 2.4rem);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 28px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.2) 100%);
+  backdrop-filter: blur(16px) saturate(1.05);
+  -webkit-backdrop-filter: blur(16px) saturate(1.05);
   color: var(--ink);
-  box-shadow: none;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 22px 55px rgba(42, 53, 45, 0.08);
 }
 
+/* Il form della home usa gli stessi campi di tutto il sito: vedi la sezione
+   FORM/MUD più in basso. Qui resta solo la superficie della card. */
+
 .form-note {
-  margin: 0.8rem 0 0;
-  font-size: 0.75rem;
-  color: var(--muted-soft);
+  margin: 0.9rem 0 0;
+  font-size: 0.74rem;
+  color: var(--muted);
   text-align: left;
 }
 
@@ -1192,26 +1448,49 @@ h1:focus-visible {
   right: 22px;
   bottom: 22px;
   z-index: 1000;
-  display: inline-flex;
-  padding: 4px;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 0;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 16px 34px rgba(42, 53, 45, 0.18);
-  transition:
-    transform 0.35s var(--ease),
-    box-shadow 0.35s var(--ease);
+  background: transparent;
+  color: var(--sage-deep);
+  font-size: 1.95rem;
+  box-shadow: 0 18px 36px rgba(20, 30, 24, 0.2);
+  transition: transform 0.35s var(--ease);
 }
 
-.whatsapp img {
-  width: 46px;
-  height: 46px;
-  object-fit: contain;
+/* Il disco è un livello a parte, con il bordo mascherato da una sfumatura
+   radiale: il centro resta pieno e il resto del raggio si dissolve nel
+   fondo, senza alcun contorno. */
+.whatsapp::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--paper);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 55%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 55%, transparent 100%);
 }
 
+.whatsapp i {
+  line-height: 1;
+  /* Il glifo di WhatsApp non è centrato nel suo riquadro: lo spostamento
+     riporta l'inchiostro esattamente al centro del cerchio. */
+  transform: translate(0.02em, 0.04em);
+}
+
+/* Al passaggio del mouse il pulsante cresce soltanto: colori invariati. */
 .whatsapp:hover,
 .whatsapp:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 40px rgba(42, 53, 45, 0.24);
+  transform: scale(1.08);
+}
+
+.whatsapp:focus-visible {
+  outline: 2px solid var(--sage-deep);
+  outline-offset: 3px;
 }
 
 .cursor-follower {
@@ -1255,13 +1534,14 @@ h1:focus-visible {
 
 .form-control {
   padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: rgba(42, 53, 45, 0.035);
   color: var(--ink);
   font-size: 0.94rem;
   transition:
     border-color 0.3s var(--ease),
+    background-color 0.3s var(--ease),
     box-shadow 0.3s var(--ease);
 }
 
@@ -1269,11 +1549,63 @@ h1:focus-visible {
   color: rgba(42, 53, 45, 0.34);
 }
 
+.campo-flottante > .form-control:hover {
+  background: rgba(42, 53, 45, 0.055);
+}
+
+.campo-flottante > .form-control:focus {
+  background: rgba(42, 53, 45, 0.015);
+}
+
 .form-control:focus {
   border-color: var(--sage-deep);
-  background: #fff;
+  background: rgba(42, 53, 45, 0.015);
   color: var(--ink);
-  box-shadow: 0 0 0 4px rgba(107, 142, 35, 0.16);
+  box-shadow: 0 12px 26px rgba(107, 142, 35, 0.12);
+}
+
+/* Etichetta flottante per i form classici (login, registrazione): stessa
+   animazione dei campi Mud, così tutti i form si comportano allo stesso modo. */
+.campo-flottante {
+  position: relative;
+}
+
+.campo-flottante > .form-control {
+  padding: 0.85rem 1rem;
+}
+
+.campo-flottante > .campo-etichetta {
+  position: absolute;
+  top: 0.95rem;
+  left: 1rem;
+  margin: 0;
+  padding: 0 0.25rem;
+  font-size: 0.94rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  pointer-events: none;
+  transform-origin: left top;
+  transition:
+    top 0.18s var(--ease),
+    left 0.18s var(--ease),
+    color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+
+/* Quando il campo è attivo o compilato l'etichetta sale sul bordo, come nei
+   campi MudBlazor: stesso movimento in tutti i form del sito. */
+.campo-flottante > .form-control:focus + .campo-etichetta,
+.campo-flottante > .form-control:not(:placeholder-shown) + .campo-etichetta {
+  top: -0.52rem;
+  left: 0.8rem;
+  background: #fff;
+  transform: scale(0.82);
+}
+
+.campo-flottante > .form-control:focus + .campo-etichetta {
+  color: var(--sage-deep);
 }
 
 .alert {
@@ -1352,23 +1684,51 @@ h1:focus-visible {
   font-size: 1.4rem;
 }
 
+/* Campi uniformi in tutto il sito: superficie piena, nessun bordo a riposo
+   e etichetta flottante animata (quella di MudBlazor, invariata). */
 .mud-input.mud-input-outlined {
-  border-radius: 12px;
-  background: #fff;
+  border-radius: 14px;
+  background: rgba(42, 53, 45, 0.035);
+  transition:
+    background-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease);
 }
 
-.mud-input-outlined .mud-input-outlined-border {
-  border-color: rgba(42, 53, 45, 0.18) !important;
-  border-radius: 12px !important;
+.mud-input.mud-input-outlined .mud-input-outlined-border {
+  border-color: transparent !important;
+  border-radius: 14px !important;
+}
+
+/* L'etichetta ha una scatola più bassa dell'interlinea: senza questo il
+   testo (e l'asterisco) viene tagliato sopra e sotto. */
+.mud-input-label {
+  overflow: visible !important;
+  color: var(--muted) !important;
+  letter-spacing: 0.02em;
+}
+
+.mud-input.mud-input-outlined:hover {
+  background: rgba(42, 53, 45, 0.055);
+}
+
+.mud-input.mud-input-outlined:focus-within {
+  background: rgba(42, 53, 45, 0.015);
 }
 
 .mud-input.mud-input-outlined:focus-within .mud-input-outlined-border {
   border-color: var(--sage-deep) !important;
   border-width: 1px !important;
+  box-shadow: 0 12px 26px rgba(107, 142, 35, 0.12);
 }
 
-.mud-input-label {
-  color: var(--muted) !important;
+/* L'etichetta non è figlia di .mud-input ma del contenitore del controllo. */
+.mud-input-control:focus-within .mud-input-label {
+  color: var(--sage-deep) !important;
+}
+
+.mud-input.mud-input-outlined.mud-input-error .mud-input-outlined-border,
+.mud-input-error .mud-input.mud-input-outlined .mud-input-outlined-border {
+  border-color: #9a4a40 !important;
 }
 
 .mud-button-root {
@@ -1528,27 +1888,38 @@ html.js-reveal .service-row:nth-child(4) {
   }
 
   .modal-servizio-panel {
+    --dialog-inset: 1rem;
+    --dialog-gap: 0.9rem;
+    --passo-numero: 1.9rem;
     width: 100%;
-    max-height: 86vh;
+    max-height: 94vh;
     border-radius: 20px;
   }
 
-  .modal-servizio-head {
-    padding: 1.3rem 1.2rem 0.9rem;
+  .modal-servizio-head h5 {
+    font-size: 1.45rem;
   }
 
-  .modal-servizio-body {
-    padding: 1rem 1.2rem 1.3rem;
+  .modal-servizio-lead {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .modal-servizio-passo-testo h6 {
+    font-size: 0.9rem;
+  }
+
+  .modal-servizio-passo-testo p {
+    font-size: 0.86rem;
+    line-height: 1.5;
   }
 
   .whatsapp {
     right: 14px;
     bottom: 14px;
-  }
-
-  .whatsapp img {
-    width: 42px;
-    height: 42px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.8rem;
   }
 
   .footer-claim {
@@ -1641,8 +2012,44 @@ html.js-reveal .service-row:nth-child(4) {
   border-radius: 12px;
 }
 
+/* Popup del calendario: angoli arrotondati su tutti i livelli, così la
+   fascia dell'anno non esce mai dritta agli angoli. */
+.mud-popover .mud-picker-container,
+.mud-picker-inline-paper,
+.mud-picker-paper,
 .mud-picker .mud-picker-content {
-  border-radius: var(--radius) !important;
+  border-radius: 22px !important;
+}
+
+/* Il contenitore è l'unico punto che racchiude anche la fascia dell'anno:
+   con overflow nascosto i suoi angoli smussano tutto il popup. */
+.mud-popover .mud-picker-container {
+  overflow: hidden !important;
+}
+
+/* Il popover che ospita il calendario viene ritagliato agli angoli con
+   clip-path: è l'unico modo che arrotonda anche la fascia in alto. */
+.mud-popover:has(.mud-picker-container) {
+  clip-path: inset(0 round 24px);
+  border-radius: 24px !important;
+  /* clip-path taglia anche l'ombra: la si ridisegna con un drop-shadow,
+     che segue il ritaglio arrotondato. */
+  box-shadow: none !important;
+  filter: drop-shadow(0 16px 30px rgba(42, 53, 45, 0.16));
+}
+
+.mud-picker-inline-paper,
+.mud-picker-paper {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.mud-picker-inline-paper {
+  box-shadow: 0 24px 60px rgba(42, 53, 45, 0.18) !important;
+}
+
+.mud-picker .mud-picker-toolbar {
+  border-radius: 22px 22px 0 0 !important;
 }
 
 .mud-picker-calendar-header {
@@ -1652,6 +2059,34 @@ html.js-reveal .service-row:nth-child(4) {
 .mud-picker-calendar-day:hover,
 .mud-picker-calendar-day.mud-selected {
   border-radius: 50%;
+}
+
+/* Intestazione del calendario più leggera e più bassa, in linea con la palette */
+.mud-picker .mud-picker-toolbar {
+  min-height: 0 !important;
+  height: 68px !important;
+  padding: 0 1rem !important;
+  background: var(--mist) !important;
+  color: var(--ink) !important;
+}
+
+/* Anno e data della selezione: più piccoli per stare nella fascia bassa */
+.mud-picker .mud-picker-toolbar .mud-button-year .mud-button-label {
+  font-size: 0.72rem;
+}
+
+.mud-picker .mud-picker-toolbar .mud-button-date .mud-button-label {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.mud-picker .mud-picker-toolbar .mud-typography,
+.mud-picker .mud-picker-toolbar button {
+  color: var(--ink) !important;
+}
+
+.mud-picker .mud-picker-calendar-header {
+  background: transparent !important;
 }
 
 /* Dialoghi */
@@ -1741,21 +2176,6 @@ html.js-reveal .service-row:nth-child(4) {
   border-radius: 12px;
   background: rgba(107, 142, 35, 0.14);
   color: #40531b;
-}
-
-/* Intestazione del calendario più leggera, in linea con la palette */
-.mud-picker .mud-picker-toolbar {
-  background: var(--mist) !important;
-  color: var(--ink) !important;
-}
-
-.mud-picker .mud-picker-toolbar .mud-typography,
-.mud-picker .mud-picker-toolbar button {
-  color: var(--ink) !important;
-}
-
-.mud-picker .mud-picker-calendar-header {
-  background: transparent !important;
 }
 
 /* Stato dello studio nella gestione indirizzi */

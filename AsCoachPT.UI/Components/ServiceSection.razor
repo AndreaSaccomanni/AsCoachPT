@@ -79,22 +79,52 @@
                  @ref="pannello"
                  @onclick:stopPropagation="true"
                  @onkeydown="OnKeyDown">
-                <div class="modal-servizio-head">
-                    <div>
-                        <p class="section-eyebrow mb-1">Servizio</p>
-                        <h5 id="titolo-modale-servizio">@aperto.Titolo</h5>
+                <figure class="modal-servizio-media">
+                    <img src="@aperto.ImmagineSrc"
+                         srcset="@aperto.ImmagineSrcset"
+                         sizes="(max-width: 899.98px) 100vw, 280px"
+                         width="@aperto.ImmagineLarghezza"
+                         height="@aperto.ImmagineAltezza"
+                         alt=""
+                         decoding="async" />
+                    <figcaption class="modal-servizio-etichetta">
+                        Servizio
+                        <span class="modal-servizio-etichetta-numero">@aperto.Id</span>
+                    </figcaption>
+                </figure>
+
+                <div class="modal-servizio-contenuto">
+                    <div class="modal-servizio-head">
+                        <div>
+                            <p class="section-eyebrow mb-1">Dettagli</p>
+                            <h5 id="titolo-modale-servizio">@aperto.Titolo</h5>
+                            <p class="modal-servizio-lead">@aperto.Descrizione</p>
+                        </div>
+                        <button type="button" class="modal-servizio-close" aria-label="Chiudi i dettagli" @onclick="ChiudiModale">
+                            <i class="fas fa-xmark" aria-hidden="true"></i>
+                        </button>
                     </div>
-                    <button type="button" class="modal-servizio-close" aria-label="Chiudi i dettagli" @onclick="ChiudiModale">
-                        <i class="fas fa-xmark" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <div class="modal-servizio-body">
-                    <ul class="list-unstyled mb-0">
-                        @foreach (var dettaglio in aperto.Dettagli)
-                        {
-                            <li>@((MarkupString)Grassetto(dettaglio))</li>
-                        }
-                    </ul>
+                    <div class="modal-servizio-body">
+                        <ul class="modal-servizio-dettagli">
+                            @for (var indice = 0; indice < aperto.Dettagli.Length; indice++)
+                            {
+                                var passo = Scomponi(aperto.Dettagli[indice]);
+                                <li class="modal-servizio-passo">
+                                    <span class="modal-servizio-passo-numero" aria-hidden="true">@(indice + 1)</span>
+                                    <div class="modal-servizio-passo-testo">
+                                        @if (passo.Titolo is not null)
+                                        {
+                                            <h6>@passo.Titolo</h6>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(passo.Testo))
+                                        {
+                                            <p>@((MarkupString)Grassetto(passo.Testo))</p>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -285,6 +315,22 @@
             System.Net.WebUtility.HtmlEncode(testo),
             "\\*\\*(.*?)\\*\\*",
             "<strong>$1</strong>");
+
+    /// <summary>
+    /// Separa un dettaglio nel titolo (la parte in **grassetto** iniziale) e nel testo che lo
+    /// segue, così il dialogo può impaginare ogni punto con il proprio titolo. Se il dettaglio
+    /// non inizia con un titolo in grassetto, resta tutto nel testo.
+    /// </summary>
+    private static (string? Titolo, string Testo) Scomponi(string dettaglio)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            dettaglio,
+            "^\\s*\\*\\*(.+?)\\*\\*\\s*:?\\s*(.*)$");
+
+        return match.Success
+            ? (match.Groups[1].Value.Trim(), match.Groups[2].Value.Trim())
+            : (null, dettaglio);
+    }
 
     /// <summary>Modello di una card servizio della home.</summary>
     /// <summary>
