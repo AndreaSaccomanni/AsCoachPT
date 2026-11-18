@@ -1,5 +1,4 @@
 ﻿@page "/creaprenotazione"
-@attribute [Authorize]
 @inject ServizioService ServiziSvc
 @inject IndirizzoService IndirizziSvc
 @inject UtenteService UtentiSvc
@@ -12,82 +11,95 @@
 <MudContainer MaxWidth="MaxWidth.Small" Class="my-8">
     <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">Crea una nuova prenotazione</MudText>
 
-    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/indirizzo" Class="mb-4">
-        Indirizzi e Giorni Disponibili
-    </MudButton>
-
-    @if (!string.IsNullOrWhiteSpace(error))
-    {
-        <MudAlert Severity="Severity.Error" Class="mb-4" Style="white-space: pre-line;">@error</MudAlert>
-    }
-
-    @if (giorniRicevimento.Count == 0)
-    {
-        <MudAlert Severity="Severity.Warning" Class="mb-4">
-            Nessun giorno di ricevimento è configurato negli studi: contatta lo studio per fissare un appuntamento.
-        </MudAlert>
-    }
-    else if (!tuttiIGiorniDisponibili)
+    @if (!autenticato)
     {
         <MudAlert Severity="Severity.Info" Class="mb-4">
-            Il calendario abilita solo i giorni di ricevimento degli studi: <strong>@string.Join(", ", nomiGiorniStudio)</strong>.
-            Gli altri giorni non sono selezionabili.
+            <MudText><strong>Per creare una prenotazione devi accedere o registrarti.</strong></MudText>
         </MudAlert>
+        <div class="d-flex gap-2 justify-content-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/login">Accedi</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/registrazione">Registrati</MudButton>
+        </div>
     }
-
-    <MudDatePicker Editable="true"
-                   Date="dataSelezionata"
-                   DateChanged="OnDataChangedAsync"
-                   Label="Seleziona la Data"
-                   Color="Color.Primary"
-                   Class="mb-4"
-                   Required="true"
-                   MinDate="dataMinima"
-                   FirstDayOfWeek="DayOfWeek.Monday"
-                   DateFormat="dd/MM/yyyy"
-                   IsDateDisabledFunc="GiornoNonSelezionabile"
-                   AdditionalDateClassesFunc="ClasseGiorno" />
-
-    @if (isStaff)
+    else
     {
-        <MudSelect T="long?" Label="Seleziona un utente" @bind-Value="utenteSelezionato" Class="mb-4">
-            @foreach (var utente in utenti)
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/indirizzo" Class="mb-4">
+            Indirizzi e Giorni Disponibili
+        </MudButton>
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Style="white-space: pre-line;">@error</MudAlert>
+        }
+
+        @if (giorniRicevimento.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                Nessun giorno di ricevimento è configurato negli studi: contatta lo studio per fissare un appuntamento.
+            </MudAlert>
+        }
+        else if (!tuttiIGiorniDisponibili)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                Il calendario abilita solo i giorni di ricevimento degli studi: <strong>@string.Join(", ", nomiGiorniStudio)</strong>.
+                Gli altri giorni non sono selezionabili.
+            </MudAlert>
+        }
+
+        <MudDatePicker Editable="true"
+                       Date="dataSelezionata"
+                       DateChanged="OnDataChangedAsync"
+                       Label="Seleziona la Data"
+                       Color="Color.Primary"
+                       Class="mb-4"
+                       Required="true"
+                       MinDate="dataMinima"
+                       FirstDayOfWeek="DayOfWeek.Monday"
+                       DateFormat="dd/MM/yyyy"
+                       IsDateDisabledFunc="GiornoNonSelezionabile"
+                       AdditionalDateClassesFunc="ClasseGiorno" />
+
+        @if (isStaff)
+        {
+            <MudSelect T="long?" Label="Seleziona un utente" @bind-Value="utenteSelezionato" Class="mb-4">
+                @foreach (var utente in utenti)
+                {
+                    <MudSelectItem T="long?" Value="@utente.Id">@utente.Nome @utente.Cognome</MudSelectItem>
+                }
+            </MudSelect>
+        }
+
+        <MudSelect T="long?" Label="Seleziona un Servizio" Value="servizioSelezionato"
+                   ValueChanged="OnServizioChangedAsync" Class="mb-4" Required="true">
+            @foreach (var servizio in servizi)
             {
-                <MudSelectItem T="long?" Value="@utente.Id">@utente.Nome @utente.Cognome</MudSelectItem>
+                <MudSelectItem T="long?" Value="@servizio.Id">@servizio.NomeServizio - Durata: @servizio.Durata minuti</MudSelectItem>
             }
         </MudSelect>
+
+        <MudSelect T="long?" Label="Seleziona un indirizzo" @bind-Value="indirizzoSelezionato" Class="mb-4" Required="true">
+            @foreach (var indirizzo in indirizziFiltrati)
+            {
+                <MudSelectItem T="long?" Value="@indirizzo.Id">@indirizzo.NomeStudio - @indirizzo.IndirizzoCompleto</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="string" Label="Orari Disponibili" @bind-Value="orarioSelezionato" Class="mb-4" Required="true">
+            @foreach (var orario in orari)
+            {
+                <MudSelectItem T="string" Value="@orario.ToString("HH:mm")">@orario.ToString("HH:mm")</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudTextField T="string" Label="Note" @bind-Value="note" Lines="3" Variant="Variant.Outlined" Class="mb-6"
+                      Placeholder="Inserisci eventuali note..." />
+
+        <div class="d-flex justify-content-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreaAsync" Disabled="salvando">
+                Crea Prenotazione
+            </MudButton>
+        </div>
     }
-
-    <MudSelect T="long?" Label="Seleziona un Servizio" Value="servizioSelezionato"
-               ValueChanged="OnServizioChangedAsync" Class="mb-4" Required="true">
-        @foreach (var servizio in servizi)
-        {
-            <MudSelectItem T="long?" Value="@servizio.Id">@servizio.NomeServizio - Durata: @servizio.Durata minuti</MudSelectItem>
-        }
-    </MudSelect>
-
-    <MudSelect T="long?" Label="Seleziona un indirizzo" @bind-Value="indirizzoSelezionato" Class="mb-4" Required="true">
-        @foreach (var indirizzo in indirizziFiltrati)
-        {
-            <MudSelectItem T="long?" Value="@indirizzo.Id">@indirizzo.NomeStudio - @indirizzo.IndirizzoCompleto</MudSelectItem>
-        }
-    </MudSelect>
-
-    <MudSelect T="string" Label="Orari Disponibili" @bind-Value="orarioSelezionato" Class="mb-4" Required="true">
-        @foreach (var orario in orari)
-        {
-            <MudSelectItem T="string" Value="@orario.ToString("HH:mm")">@orario.ToString("HH:mm")</MudSelectItem>
-        }
-    </MudSelect>
-
-    <MudTextField T="string" Label="Note" @bind-Value="note" Lines="3" Variant="Variant.Outlined" Class="mb-6"
-                  Placeholder="Inserisci eventuali note..." />
-
-    <div class="d-flex justify-content-center">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreaAsync" Disabled="salvando">
-            Crea Prenotazione
-        </MudButton>
-    </div>
 </MudContainer>
 
 @code {
@@ -111,6 +123,7 @@
     private string? note;
     private string? error;
     private bool isStaff;
+    private bool autenticato;
     private bool salvando;
 
     /// <summary>Vero quando gli studi ricevono tutti i giorni della settimana lavorativa.</summary>
@@ -119,6 +132,12 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
+        autenticato = state.User.Identity?.IsAuthenticated == true;
+        if (!autenticato)
+        {
+            return;
+        }
+
         isStaff = state.User.IsInRole(nameof(UserRole.ADMIN)) || state.User.IsInRole(nameof(UserRole.PERSONAL_TRAINER));
 
         servizi = await ServiziSvc.ElencaAsync();

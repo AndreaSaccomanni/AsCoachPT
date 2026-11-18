@@ -2290,40 +2290,6 @@ html.js-reveal .service-row:nth-child(4) {
   border-top: 1px solid var(--line);
 }
 
-.address-placeholder {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.35rem;
-  width: 100%;
-  min-height: 230px;
-  padding: 1.5rem;
-  border: 0;
-  border-top: 1px solid var(--line);
-  background: var(--mist);
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.2s var(--ease);
-}
-
-.address-placeholder:hover,
-.address-placeholder:focus-visible {
-  background: var(--home);
-  outline: none;
-}
-
-.address-placeholder strong {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 400;
-}
-
-.address-placeholder span {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
 /* Suggerimenti sotto il campo di ricerca indirizzo, in stile Google Maps */
 .place-search {
   position: relative;

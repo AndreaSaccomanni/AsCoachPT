@@ -47,20 +47,10 @@
                         </div>
                     </div>
 
-                    @if (mappeCaricate.Contains(indirizzo.Id))
-                    {
-                        <iframe class="address-map" loading="lazy" allowfullscreen
-                                referrerpolicy="no-referrer-when-downgrade"
-                                src="@LinkMappa(indirizzo)"
-                                title="Mappa di @indirizzo.NomeStudio, @indirizzo.Via @indirizzo.NumeroCivico, @indirizzo.Citta"></iframe>
-                    }
-                    else
-                    {
-                        <button type="button" class="address-placeholder" @onclick="() => CaricaMappa(indirizzo.Id)">
-                            <strong>Mostra la mappa</strong>
-                            <span>@indirizzo.NomeStudio · @indirizzo.Citta</span>
-                        </button>
-                    }
+                    <iframe class="address-map" loading="lazy" allowfullscreen
+                            referrerpolicy="no-referrer-when-downgrade"
+                            src="@LinkMappa(indirizzo)"
+                            title="Mappa di @indirizzo.NomeStudio, @indirizzo.Via @indirizzo.NumeroCivico, @indirizzo.Citta"></iframe>
                 </article>
             }
         </div>
@@ -69,7 +59,6 @@
 
 @code {
     private List<Indirizzo> indirizzi = new();
-    private readonly HashSet<long> mappeCaricate = new();
     private bool loading = true;
     private bool isStaff;
     private string? error;
@@ -92,8 +81,6 @@
         }
     }
 
-    private void CaricaMappa(long id) => mappeCaricate.Add(id);
-
     /// <summary>
     /// Interpola le coordinate con la cultura invariante: con it-IT il separatore
     /// decimale è la virgola e Google Maps leggerebbe la posizione come 4 numeri.
@@ -111,7 +98,7 @@
     }
 
     private static string LinkMappa(Indirizzo indirizzo) =>
-        $"https://www.google.com/maps?q={Posizione(indirizzo)}&hl=it&z=16&output=embed";
+        $"https://www.google.com/maps?q={Posizione(indirizzo)}&hl=it&z=16&t=k&output=embed";
 
     private static string LinkEsterno(Indirizzo indirizzo) =>
         $"https://www.google.com/maps/search/?api=1&query={Posizione(indirizzo)}";

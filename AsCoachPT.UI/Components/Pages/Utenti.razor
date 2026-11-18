@@ -3,6 +3,7 @@
 @inject UtenteService UtentiSvc
 @inject PasswordResetService ResetSvc
 @inject NavigationManager Nav
+@inject IConfiguration Config
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
@@ -332,7 +333,7 @@
         try
         {
             var esito = await ResetSvc.GeneraEInviaPerIdAsync(
-                utenteReimposta.Id, Nav.BaseUri.TrimEnd('/'));
+                utenteReimposta.Id, PublicUrl.Resolve(Config, Nav));
 
             if (!esito.UtenteTrovato || string.IsNullOrWhiteSpace(esito.Link))
             {
