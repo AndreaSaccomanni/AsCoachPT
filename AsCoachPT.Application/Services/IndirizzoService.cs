@@ -35,14 +35,13 @@ public sealed class IndirizzoService(
     }
 
     /// <summary>Recupera un indirizzo o segnala che non esiste.</summary>
-    public async Task<Indirizzo> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
+    private async Task<Indirizzo> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
         await indirizzi.TrovaPerIdAsync(id, tokenAnnullamento) ?? throw new InvalidOperationException("Indirizzo non trovato");
 
     /// <summary>Aggiunge un indirizzo liberando i giorni eventualmente assegnati ad altri studi.</summary>
     public async Task<Indirizzo> AggiungiAsync(Indirizzo indirizzo, CancellationToken tokenAnnullamento = default)
     {
         await RimuoviGiorniGiaAssegnatiAsync(indirizzo.Giorni, null, tokenAnnullamento);
-        indirizzo.Id = 0;
         indirizzo.GiorniDisponibili = Normalizza(indirizzo.Giorni);
         await indirizzi.AggiungiAsync(indirizzo, tokenAnnullamento);
         await unitOfWork.SalvaModificheAsync(tokenAnnullamento);

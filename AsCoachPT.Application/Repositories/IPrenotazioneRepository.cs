@@ -10,7 +10,6 @@ public interface IPrenotazioneRepository
     Task<List<Prenotazione>> ElencaFuturePerUtenteAsync(long utenteId, CancellationToken tokenAnnullamento = default);
     Task<List<Prenotazione>> ElencaPerIndirizzoAsync(long indirizzoId, CancellationToken tokenAnnullamento = default);
     Task<List<Prenotazione>> ElencaDelGiornoAsync(DateOnly data, CancellationToken tokenAnnullamento = default);
-    Task<List<Prenotazione>> ElencaConServizioAsync(CancellationToken tokenAnnullamento = default);
     Task AggiungiAsync(Prenotazione prenotazione, CancellationToken tokenAnnullamento = default);
     void Rimuovi(Prenotazione prenotazione);
     Task AggiungiNotificaAsync(NotificaPrenotazione notifica, CancellationToken tokenAnnullamento = default);

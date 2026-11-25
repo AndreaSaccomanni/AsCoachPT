@@ -103,32 +103,65 @@
 </MudContainer>
 
 @code {
-    private static readonly string[] GiorniSettimana = GiorniStudio.Settimana;
-
+    // Giorni in cui almeno uno studio riceve: guidano l'abilitazione del calendario.
     private HashSet<DayOfWeek> giorniRicevimento = new();
+
+    // Nomi italiani dei giorni precedenti, usati nel messaggio informativo.
     private readonly List<string> nomiGiorniStudio = new();
+
+    // Prima data selezionabile: oggi.
     private readonly DateTime dataMinima = DateTime.Today;
 
+    // Catalogo dei servizi prenotabili letto dal database.
     private List<Servizio> servizi = new();
+
+    // Studi attivi, base per il filtro in base al giorno scelto.
     private List<Indirizzo> indirizzi = new();
+
+    // Studi aperti nel giorno scelto, mostrati nella tendina.
     private List<Indirizzo> indirizziFiltrati = new();
+
+    // Utenti selezionabili dallo staff; resta vuoto per gli utenti normali.
     private List<Utente> utenti = new();
+
+    // Orari liberi calcolati per la combinazione data + servizio.
     private List<DateTime> orari = new();
 
+    // Data scelta nel calendario.
     private DateTime? dataSelezionata;
+
+    // Id del servizio scelto.
     private long? servizioSelezionato;
+
+    // Id dello studio scelto.
     private long? indirizzoSelezionato;
+
+    // Id dell'utente per cui prenota lo staff.
     private long? utenteSelezionato;
+
+    // Orario scelto, nel formato HH:mm.
     private string? orarioSelezionato;
+
+    // Note libere allegate alla prenotazione.
     private string? note;
+
+    // Messaggio di errore mostrato sopra il form.
     private string? error;
+
+    // Vero se l'utente autenticato è admin o personal trainer.
     private bool isStaff;
+
+    // Vero se l'utente è autenticato: senza login il form non viene mostrato.
     private bool autenticato;
+
+    // Evita invii doppi mentre la prenotazione viene salvata.
     private bool salvando;
 
-    /// <summary>Vero quando gli studi ricevono tutti i giorni della settimana lavorativa.</summary>
-    private bool tuttiIGiorniDisponibili => giorniRicevimento.Count >= GiorniSettimana.Length;
+    /// <summary>Vero quando gli studi ricevono tutti i giorni lavorativi.</summary>
+    private bool tuttiIGiorniDisponibili =>
+        giorniRicevimento.Count >= GiorniStudio.Settimana.Length;
 
+    /// <summary>Carica utente, catalogo servizi, studi e giorni di ricevimento.</summary>
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
@@ -156,10 +189,8 @@
     /// </summary>
     private void CalcolaGiorniRicevimento()
     {
-        giorniRicevimento.Clear();
-        nomiGiorniStudio.Clear();
-
         giorniRicevimento = GiorniStudio.DaStudi(indirizzi);
+        nomiGiorniStudio.Clear();
 
         foreach (var giorno in giorniRicevimento.OrderBy(g => (int)g))
         {
@@ -179,8 +210,10 @@
     }
 
     /// <summary>Classe usata dal calendario per evidenziare i giorni di ricevimento.</summary>
-    private string ClasseGiorno(DateTime data) => GiornoNonSelezionabile(data) ? string.Empty : "giorno-ricevimento";
+    private string ClasseGiorno(DateTime data) =>
+        GiornoNonSelezionabile(data) ? string.Empty : "giorno-ricevimento";
 
+    /// <summary>Aggiorna gli studi compatibili e ricalcola gli orari quando cambia la data.</summary>
     private async Task OnDataChangedAsync(DateTime? value)
     {
         dataSelezionata = value;
@@ -188,12 +221,17 @@
         await CaricaOrariAsync();
     }
 
+    /// <summary>Ricalcola gli orari quando cambia il servizio, perché cambia la durata.</summary>
     private async Task OnServizioChangedAsync(long? value)
     {
         servizioSelezionato = value;
         await CaricaOrariAsync();
     }
 
+    /// <summary>
+    /// Chiede al servizio di prenotazione gli orari liberi per data e servizio.
+    /// Un errore viene mostrato in pagina senza interrompere la compilazione.
+    /// </summary>
     private async Task CaricaOrariAsync()
     {
         orari = new List<DateTime>();
@@ -204,7 +242,9 @@
             try
             {
                 error = null;
-                orari = await PrenotazioniSvc.CalcolaOrariDisponibiliAsync(DateOnly.FromDateTime(dataSelezionata.Value), servizioSelezionato.Value);
+                orari = await PrenotazioniSvc.CalcolaOrariDisponibiliAsync(
+                    DateOnly.FromDateTime(dataSelezionata.Value),
+                    servizioSelezionato.Value);
             }
             catch (Exception ex)
             {
@@ -213,13 +253,14 @@
         }
     }
 
+    /// <summary>Tiene solo gli studi che ricevono nel giorno selezionato.</summary>
     private void FiltraIndirizzi()
     {
         indirizzoSelezionato = null;
-        indirizziFiltrati = new List<Indirizzo>();
 
         if (dataSelezionata is null)
         {
+            indirizziFiltrati = new List<Indirizzo>();
             return;
         }
 
@@ -228,11 +269,16 @@
             .ToList();
     }
 
+    /// <summary>
+    /// Valida i campi obbligatori, ricostruisce data e ora scelte e crea la
+    /// prenotazione per l'utente corrente o per quello scelto dallo staff.
+    /// </summary>
     private async Task CreaAsync()
     {
         error = null;
 
-        if (dataSelezionata is null || servizioSelezionato is null or 0 || indirizzoSelezionato is null or 0 || string.IsNullOrWhiteSpace(orarioSelezionato))
+        if (dataSelezionata is null || servizioSelezionato is null or 0 ||
+            indirizzoSelezionato is null or 0 || string.IsNullOrWhiteSpace(orarioSelezionato))
         {
             error = "Compila tutti i campi obbligatori.";
             return;

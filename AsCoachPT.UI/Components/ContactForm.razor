@@ -38,10 +38,19 @@
 </MudPaper>
 
 @code {
+    // Dati del modulo contatti.
     private readonly FormInformazioni form = new();
+
+    // Vero dopo un invio riuscito.
     private bool inviato;
+
+    // Vero se il servizio email ha rifiutato l'invio.
     private bool errore;
+
+    // Vero se i campi non superano la validazione lato client.
     private bool campiNonValidi;
+
+    // Vero durante l'invio: disabilita il pulsante.
     private bool inviando;
 
     /// <summary>
@@ -82,6 +91,11 @@
             {
                 errore = true;
             }
+        }
+        catch (Exception)
+        {
+            // Un errore di rete o del provider non deve lasciare il form muto.
+            errore = true;
         }
         finally
         {

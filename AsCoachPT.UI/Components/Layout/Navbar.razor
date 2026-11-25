@@ -52,8 +52,10 @@
 </nav>
 
 @code {
+    // Vero quando il menu mobile è aperto.
     private bool menuOpen;
 
+    // Vero in home, dove la navbar è trasparente sopra l'immagine.
     private bool IsHome => new Uri(NavigationManager.Uri).AbsolutePath is "/" or "";
 
     /// <summary>
@@ -66,15 +68,19 @@
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
+    /// <summary>Chiude il menu e ridisegna la navbar dopo una navigazione.</summary>
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         menuOpen = false;
         StateHasChanged();
     }
 
+    /// <summary>Apre o chiude il menu mobile.</summary>
     private void ToggleMenu() => menuOpen = !menuOpen;
 
+    /// <summary>Chiude il menu mobile dopo un clic su un collegamento.</summary>
     private void CloseMenu() => menuOpen = false;
 
+    /// <summary>Rimuove l'iscrizione agli eventi di navigazione.</summary>
     public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }

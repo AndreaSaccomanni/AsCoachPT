@@ -1,6 +1,5 @@
 using AsCoachPT.Application.Models;
 using AsCoachPT.Application.Repositories;
-using AsCoachPT.Application.Services;
 using AsCoachPT.Domain.Models;
 using Microsoft.Extensions.Logging;
 
@@ -27,6 +26,13 @@ public sealed class UtenteService(
         if (string.IsNullOrWhiteSpace(richiesta.Telefono))
         {
             throw new InvalidOperationException("Il numero di telefono è obbligatorio");
+        }
+
+        if (string.IsNullOrWhiteSpace(richiesta.Password) ||
+            richiesta.Password.Length < PasswordResetService.LunghezzaMinimaPassword)
+        {
+            throw new InvalidOperationException(
+                $"La password deve contenere almeno {PasswordResetService.LunghezzaMinimaPassword} caratteri");
         }
 
         var ruolo = UserRole.USER;
@@ -98,7 +104,7 @@ public sealed class UtenteService(
         utenti.TrovaPerEmailAsync(email, tokenAnnullamento);
 
     /// <summary>Recupera un utente o segnala che non esiste.</summary>
-    public async Task<Utente> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
+    private async Task<Utente> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
         await utenti.TrovaPerIdAsync(id, tokenAnnullamento) ?? throw new InvalidOperationException("Utente non trovato!⚠️");
 
     /// <summary>Aggiorna i dati anagrafici dell'utente, ricodificando la password se indicata.</summary>
@@ -117,7 +123,18 @@ public sealed class UtenteService(
         if (!string.IsNullOrWhiteSpace(modifiche.Username)) utente.Username = modifiche.Username;
         if (!string.IsNullOrWhiteSpace(modifiche.Email)) utente.Email = modifiche.Email;
         utente.Telefono = modifiche.Telefono.Trim();
-        if (!string.IsNullOrWhiteSpace(modifiche.Password)) utente.Password = passwordHasher.GeneraHash(modifiche.Password);
+
+        if (!string.IsNullOrWhiteSpace(modifiche.Password))
+        {
+            if (modifiche.Password.Length < PasswordResetService.LunghezzaMinimaPassword)
+            {
+                throw new InvalidOperationException(
+                    $"La password deve contenere almeno {PasswordResetService.LunghezzaMinimaPassword} caratteri");
+            }
+
+            utente.Password = passwordHasher.GeneraHash(modifiche.Password);
+        }
+
         if (modifiche.Ruolo is not null) utente.Ruolo = modifiche.Ruolo;
 
         try

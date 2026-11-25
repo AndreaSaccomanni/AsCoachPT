@@ -3,19 +3,37 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AsCoachPT.Infrastructure.Data;
 
+/// <summary>Contesto EF Core con le tabelle del sito e i nomi di colonna legacy.</summary>
 public class AsCoachDbContext : DbContext
 {
+    /// <summary>Riceve le opzioni (provider e stringa di connessione) dal contenitore DI.</summary>
     public AsCoachDbContext(DbContextOptions<AsCoachDbContext> options) : base(options) { }
 
+    /// <summary>Utenti registrati.</summary>
     public DbSet<Utente> Utenti => Set<Utente>();
+
+    /// <summary>Ruoli disponibili (tabella legacy mantenuta per compatibilità).</summary>
     public DbSet<Ruolo> Ruoli => Set<Ruolo>();
+
+    /// <summary>Studi e giorni di ricevimento.</summary>
     public DbSet<Indirizzo> Indirizzi => Set<Indirizzo>();
+
+    /// <summary>Catalogo servizi (tabella base della gerarchia).</summary>
     public DbSet<Servizio> Servizi => Set<Servizio>();
+
+    /// <summary>Consulenze, sottotipo di <see cref="Servizio"/>.</summary>
     public DbSet<Consulenza> Consulenze => Set<Consulenza>();
+
+    /// <summary>Massaggi, sottotipo di <see cref="Servizio"/>.</summary>
     public DbSet<Massaggio> Massaggi => Set<Massaggio>();
+
+    /// <summary>Appuntamenti prenotati.</summary>
     public DbSet<Prenotazione> Prenotazioni => Set<Prenotazione>();
+
+    /// <summary>Avvisi per lo staff su modifiche e annullamenti.</summary>
     public DbSet<NotificaPrenotazione> NotifichePrenotazioni => Set<NotificaPrenotazione>();
 
+    /// <summary>Mappa entità, nomi di colonna, relazioni e discriminatore dei servizi.</summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Utente>(e =>

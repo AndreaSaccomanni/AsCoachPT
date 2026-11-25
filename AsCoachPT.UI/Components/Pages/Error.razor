@@ -25,12 +25,17 @@
 </p>
 
 @code{
+    // Contesto HTTP disponibile solo durante il prerender, usato come fallback per l'id.
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 
+    // Identificativo della richiesta, utile per correlare i log.
     private string? RequestId { get; set; }
+
+    // Mostra l'id solo quando esiste.
     private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
+    /// <summary>Recupera l'id dell'attività corrente o, in mancanza, quello della richiesta HTTP.</summary>
     protected override void OnInitialized() =>
         RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
 }

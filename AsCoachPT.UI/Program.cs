@@ -19,11 +19,19 @@ var creatoreApp = WebApplication.CreateBuilder(args);
 
 // Ogni avvio invalida le sessioni precedenti: fermare il debug o riavviare
 // il sito obbliga a effettuare di nuovo il login.
+// Identificativo univoco di questo avvio: i cookie emessi prima non valgono più.
 var avvioSessione = Guid.NewGuid().ToString("N");
+
+// Claim che lega il cookie all'avvio corrente del processo.
 const string ClaimAvvio = "avvio";
+
+// Cookie leggibile dal browser con l'istante di inizio sessione.
 const string CookieInizioSessione = "ascoach.session_start";
+
+// Sessione assoluta: 30 minuti dal login, senza rinnovo automatico.
 var durataSessione = TimeSpan.FromMinutes(30);
 
+// Credenziali OAuth: prima configurazione, poi variabili d'ambiente di Render.
 var googleClientId = creatoreApp.Configuration["Authentication:Google:ClientId"];
 if (string.IsNullOrWhiteSpace(googleClientId))
 {
@@ -36,6 +44,7 @@ if (string.IsNullOrWhiteSpace(googleClientSecret))
     googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
 }
 
+// Google è mostrato nel login solo quando client e secret sono entrambi presenti.
 var googleAbilitato = !string.IsNullOrWhiteSpace(googleClientId)
     && !string.IsNullOrWhiteSpace(googleClientSecret);
 creatoreApp.Services.AddSingleton(new GoogleLoginSettings(googleAbilitato));
@@ -56,6 +65,7 @@ creatoreApp.Services.AddMudServices();
 creatoreApp.Services.AddInfrastructure(creatoreApp.Configuration);
 creatoreApp.Services.AddResponseCompression(opzioni => opzioni.EnableForHttps = true);
 
+// Cookie principale: sessione assoluta, rivalidata a ogni richiesta contro il database.
 var autenticazione = creatoreApp.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opzioni =>
     {
@@ -286,9 +296,11 @@ applicazioneWeb.MapPost("/auth/register", async (HttpContext http, UtenteService
         return Results.Redirect("/registrazione?error=" + Uri.EscapeDataString("Le password non corrispondono."));
     }
 
-    if (password.Length < 3)
+    if (password.Length < PasswordResetService.LunghezzaMinimaPassword)
     {
-        return Results.Redirect("/registrazione?error=" + Uri.EscapeDataString("La password deve contenere almeno 3 caratteri."));
+        return Results.Redirect(
+            "/registrazione?error=" + Uri.EscapeDataString(
+                $"La password deve contenere almeno {PasswordResetService.LunghezzaMinimaPassword} caratteri."));
     }
 
     var richiesta = new RegisterRequest
@@ -333,6 +345,7 @@ using (var ambito = applicazioneWeb.Services.CreateScope())
 applicazioneWeb.Run();
 
 // Accede un utente già verificato (password o Google) con cookie e scadenza assoluta.
+// Aggiunge il claim di avvio e il cookie con l'istante di inizio sessione.
 async Task AccediUtenteAsync(HttpContext http, Utente utente)
 {
     var principal = ClaimsPrincipalFactory.Crea(utente);
@@ -357,6 +370,7 @@ async Task AccediUtenteAsync(HttpContext http, Utente utente)
 }
 
 // Blocca richieste cross-origin verso gli endpoint di autenticazione (difesa CSRF aggiuntiva).
+// Le richieste senza header Origin (form nativi, curl) restano ammesse.
 static bool StessaOrigine(HttpRequest richiesta)
 {
     var origine = richiesta.Headers.Origin.ToString();

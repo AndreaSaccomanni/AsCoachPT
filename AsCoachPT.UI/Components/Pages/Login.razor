@@ -72,18 +72,23 @@
 </div>
 
 @code {
+    // Query ?error=1: credenziali email/password non valide.
     [SupplyParameterFromQuery(Name = "error")]
     public int? Error { get; set; }
 
+    // Query ?registered=1: registrazione completata, invito al login.
     [SupplyParameterFromQuery(Name = "registered")]
     public int? Registered { get; set; }
 
+    // Query ?timeout=1: sessione scaduta dopo 30 minuti.
     [SupplyParameterFromQuery(Name = "timeout")]
     public int? Timeout { get; set; }
 
+    // Query ?passwordChanged=1: password aggiornata, serve un nuovo accesso.
     [SupplyParameterFromQuery(Name = "passwordChanged")]
     public int? PasswordChanged { get; set; }
 
+    // Query ?googleError=...: motivo del fallimento del login Google.
     [SupplyParameterFromQuery(Name = "googleError")]
     public string? GoogleError { get; set; }
 }

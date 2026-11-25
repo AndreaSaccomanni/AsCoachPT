@@ -9,6 +9,12 @@ namespace AsCoachPT.Infrastructure.Data;
 /// </summary>
 public static class DatabaseSchema
 {
+    /// <summary>
+    /// Aggiunge colonne e tabelle mancanti in modo idempotente. La sintassi
+    /// cambia in base al provider (PostgreSQL in produzione, SQLite in locale).
+    /// </summary>
+    /// <param name="contesto">Contesto EF Core da aggiornare.</param>
+    /// <param name="tokenAnnullamento">Token per annullare i comandi SQL.</param>
     public static async Task AssicuraAsync(AsCoachDbContext contesto, CancellationToken tokenAnnullamento = default)
     {
         var provider = contesto.Database.ProviderName ?? string.Empty;

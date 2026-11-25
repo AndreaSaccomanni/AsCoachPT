@@ -3,8 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AsCoachPT.Infrastructure.Data;
 
+/// <summary>
+/// Inserisce i dati di base mancanti (ruoli e servizi prenotabili) al primo avvio.
+/// È idempotente: non duplica record già presenti.
+/// </summary>
 public static class DbSeeder
 {
+    /// <summary>Crea ruoli e servizi se le rispettive tabelle sono vuote o incomplete.</summary>
+    /// <param name="db">Contesto database già inizializzato.</param>
     public static void Seed(AsCoachDbContext db)
     {
         if (!db.Ruoli.Any())

@@ -3,6 +3,10 @@
 @inject NavigationManager NavigationManager
 
 @code {
+    /// <summary>
+    /// Riporta alla home chi è già autenticato, al login chi non lo è.
+    /// Usato dal Router quando una pagina richiede autorizzazione.
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();

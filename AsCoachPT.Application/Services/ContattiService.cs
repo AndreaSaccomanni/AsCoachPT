@@ -1,5 +1,4 @@
 using AsCoachPT.Application.Models;
-using AsCoachPT.Application.Services;
 
 namespace AsCoachPT.Application.Services;
 

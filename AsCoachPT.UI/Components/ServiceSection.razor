@@ -139,10 +139,19 @@
     [Parameter]
     public bool DettagliInModale { get; set; }
 
+    // Vero su schermi piccoli: i dettagli si aprono sempre nel dialogo.
     private bool mobile;
+
+    // Controlla la visibilità del dialogo dei dettagli.
     private bool modaleAperta;
+
+    // Richiede il focus sul pannello al prossimo render.
     private bool daFocalizzare;
+
+    // Riferimento al pannello del dialogo, usato per portare il focus.
     private ElementReference pannello;
+
+    // Servizio i cui dettagli sono aperti, null se nessuno.
     private ServizioCard? aperto;
 
     /// <summary>
@@ -332,11 +341,18 @@
             : (null, dettaglio);
     }
 
-    /// <summary>Modello di una card servizio della home.</summary>
     /// <summary>
     /// Card servizio con immagine ottimizzata: src principale, srcset per le diverse densità
     /// e dimensioni intrinseche, così il browser riserva lo spazio ed evita layout shift.
     /// </summary>
+    /// <param name="Id">Numero mostrato accanto al servizio.</param>
+    /// <param name="Titolo">Titolo della card.</param>
+    /// <param name="Descrizione">Testo breve mostrato nella riga.</param>
+    /// <param name="Dettagli">Punti mostrati nel dialogo o nel pannello.</param>
+    /// <param name="ImmagineSrc">Immagine principale.</param>
+    /// <param name="ImmagineSrcset">Varianti responsive dell'immagine.</param>
+    /// <param name="ImmagineLarghezza">Larghezza intrinseca dell'immagine.</param>
+    /// <param name="ImmagineAltezza">Altezza intrinseca dell'immagine.</param>
     public record ServizioCard(
         int Id,
         string Titolo,

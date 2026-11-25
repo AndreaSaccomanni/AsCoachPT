@@ -22,18 +22,6 @@ public static class GiorniStudio
         _ => null
     };
 
-    /// <summary>Nome salvato a database per un giorno.</summary>
-    public static string Nome(DayOfWeek giorno) => giorno switch
-    {
-        DayOfWeek.Monday => "LUNEDI",
-        DayOfWeek.Tuesday => "MARTEDI",
-        DayOfWeek.Wednesday => "MERCOLEDI",
-        DayOfWeek.Thursday => "GIOVEDI",
-        DayOfWeek.Friday => "VENERDI",
-        DayOfWeek.Saturday => "SABATO",
-        _ => "DOMENICA"
-    };
-
     /// <summary>Nome leggibile (con accento) per i messaggi in pagina.</summary>
     public static string NomeItaliano(DayOfWeek giorno) => giorno switch
     {

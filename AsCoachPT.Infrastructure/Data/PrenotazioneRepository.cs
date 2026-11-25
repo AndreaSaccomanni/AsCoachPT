@@ -44,11 +44,6 @@ public sealed class PrenotazioneRepository(AsCoachDbContext contesto) : IPrenota
             .ToListAsync(tokenAnnullamento);
     }
 
-    public Task<List<Prenotazione>> ElencaConServizioAsync(CancellationToken tokenAnnullamento = default) =>
-        contesto.Prenotazioni.AsNoTracking()
-            .Include(prenotazione => prenotazione.Servizio)
-            .ToListAsync(tokenAnnullamento);
-
     public Task AggiungiAsync(Prenotazione prenotazione, CancellationToken tokenAnnullamento = default) =>
         contesto.Prenotazioni.AddAsync(prenotazione, tokenAnnullamento).AsTask();
 

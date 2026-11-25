@@ -52,6 +52,7 @@
 </div>
 
 @code {
+    // Query ?error=...: motivo per cui la registrazione non è andata a buon fine.
     [SupplyParameterFromQuery(Name = "error")]
     public string? Error { get; set; }
 

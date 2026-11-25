@@ -21,6 +21,10 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
+    else if (!string.IsNullOrWhiteSpace(error))
+    {
+        <MudAlert Severity="Severity.Error">@error</MudAlert>
+    }
     else if (indirizzi.Count == 0)
     {
         <MudAlert Severity="Severity.Warning">Nessun indirizzo trovato.</MudAlert>
@@ -58,11 +62,19 @@
 </MudContainer>
 
 @code {
+    // Studi attivi mostrati con indirizzo e mappa.
     private List<Indirizzo> indirizzi = new();
+
+    // Vero finché la lista non ha finito di caricare.
     private bool loading = true;
+
+    // Vero per admin e personal trainer: mostra il collegamento alla gestione.
     private bool isStaff;
+
+    // Errore di caricamento mostrato in pagina.
     private string? error;
 
+    /// <summary>Legge il ruolo e carica gli studi attivi.</summary>
     protected override async Task OnInitializedAsync()
     {
         try
@@ -97,9 +109,11 @@
         return Uri.EscapeDataString(testo);
     }
 
+    /// <summary>URL della mappa incorporata, in vista satellite.</summary>
     private static string LinkMappa(Indirizzo indirizzo) =>
         $"https://www.google.com/maps?q={Posizione(indirizzo)}&hl=it&z=16&t=k&output=embed";
 
+    /// <summary>URL per aprire l'indirizzo in Google Maps in una nuova scheda.</summary>
     private static string LinkEsterno(Indirizzo indirizzo) =>
         $"https://www.google.com/maps/search/?api=1&query={Posizione(indirizzo)}";
 }

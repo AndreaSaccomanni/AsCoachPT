@@ -154,7 +154,7 @@
                         </MudAlert>
                     }
                     <div class="dialog-days">
-                        @foreach (var giorno in GiorniSettimana)
+                        @foreach (var giorno in GiorniStudio.Settimana)
                         {
                             var assegnatoAltrove = giorniAssegnati.Contains(giorno) && !modale.Giorni.Contains(giorno);
                             <MudCheckBox T="bool" Value="@modale.Giorni.Contains(giorno)" Label="@giorno"
@@ -202,40 +202,83 @@
 </MudContainer>
 
 @code {
+    // Riga della tabella: numero progressivo e indirizzo associato.
     private record Riga(int Posizione, Indirizzo Indirizzo);
 
-    private static readonly string[] GiorniSettimana = { "LUNEDI", "MARTEDI", "MERCOLEDI", "GIOVEDI", "VENERDI", "SABATO" };
-
+    // Indirizzi letti dal database, compresi quelli disabilitati.
     private List<Indirizzo> indirizzi = new();
+
+    // Righe già numerate mostrate nella tabella.
     private List<Riga> Righe = new();
+
+    // Giorni già assegnati a studi attivi, usati per disabilitare le checkbox.
     private List<string> giorniAssegnati = new();
+
+    // Dati temporanei del dialogo di creazione o modifica.
     private IndirizzoModale modale = new();
+
+    // Errore mostrato dentro il dialogo.
     private string? erroreModale;
+
+    // Avviso mostrato sopra la tabella quando non ci sono giorni liberi.
     private string? erroreGiorni;
+
+    // Testo del dialogo di conferma eliminazione.
     private string testoConferma = string.Empty;
+
+    // Vero finché la tabella non ha finito di caricare.
     private bool loading = true;
+
+    // Vero durante il salvataggio dell'indirizzo.
     private bool salvando;
+
+    // Controlla la visibilità del dialogo di creazione o modifica.
     private bool modaleAperta;
+
+    // Controlla la visibilità del dialogo di conferma eliminazione.
     private bool confermaAperta;
+
+    // Id dell'indirizzo da eliminare.
     private long idDaEliminare;
+
+    // Testo dell'ultimo indirizzo risolto tramite Google o mappa.
     private string? luogoRisolto;
+
+    // Suggerimenti Google mostrati sotto il campo di ricerca.
     private List<SuggerimentoLuogo> suggerimenti = new();
+
+    // Vero mentre i suggerimenti Google sono in caricamento.
     private bool caricandoSuggerimenti;
+
+    // Numero della ricerca corrente: scarta le risposte di ricerche superate.
     private int versioneRicerca;
+
+    // Vero quando la mappa del selettore è stata inizializzata.
     private bool mappaSelettoreInizializzata;
+
+    // Vero quando Google Maps non è disponibile.
     private bool mappaSelettoreFallita;
+
+    // Vero quando la ricerca ha prodotto una risposta (anche vuota).
     private bool ricercaEseguita;
+
+    // Riferimento .NET usato da JavaScript per richiamare AggiornaDaMappa.
     private DotNetObjectReference<GestioneIndirizzi>? riferimentoJs;
 
+    // Id HTML del contenitore della mappa nel dialogo.
     private const string IdSelettoreMappa = "selettore-mappa";
+
+    // Messaggio unico mostrato quando la mappa non può essere caricata.
     private const string MessaggioMappaNonDisponibile = "Mappa non disponibile: controlla la connessione a Google Maps.";
 
+    // Dimensioni del dialogo di creazione o modifica.
     private readonly DialogOptions opzioniDialog = new()
     {
         FullWidth = true,
         MaxWidth = MaxWidth.Large
     };
 
+    /// <summary>Crea il riferimento JS e carica gli indirizzi.</summary>
     protected override async Task OnInitializedAsync()
     {
         riferimentoJs = DotNetObjectReference.Create(this);
@@ -243,6 +286,10 @@
         loading = false;
     }
 
+    /// <summary>
+    /// Inizializza la mappa quando il dialogo si apre e la distrugge alla
+    /// chiusura, così non restano listener o istanze Google attive.
+    /// </summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (modaleAperta && !mappaSelettoreInizializzata && !mappaSelettoreFallita)
@@ -272,11 +319,12 @@
         }
     }
 
+    /// <summary>Ricarica indirizzi, giorni occupati e righe della tabella.</summary>
     private async Task CaricaAsync()
     {
         indirizzi = await IndirizziSvc.ElencaAsync(includiDisabilitati: true);
-        giorniAssegnati = indirizzi.Where(i => i.Attivo).SelectMany(i => i.Giorni).ToList();
-        Righe = indirizzi.Select((i, idx) => new Riga(idx + 1, i)).ToList();
+        giorniAssegnati = indirizzi.Where(indirizzo => indirizzo.Attivo).SelectMany(indirizzo => indirizzo.Giorni).ToList();
+        Righe = indirizzi.Select((indirizzo, indice) => new Riga(indice + 1, indirizzo)).ToList();
     }
 
     /// <summary>Abilita o disabilita lo studio: disabilitandolo i giorni tornano liberi.</summary>
@@ -300,9 +348,10 @@
         }
     }
 
+    /// <summary>Verifica che resti un giorno libero, poi apre il dialogo vuoto.</summary>
     private void ApriAggiunta()
     {
-        if (giorniAssegnati.Count == 6)
+        if (giorniAssegnati.Count >= GiorniStudio.Settimana.Length)
         {
             erroreGiorni = "Non ci sono giorni liberi. Prima di aggiungere un nuovo indirizzo, rimuovi un giorno da uno degli indirizzi esistenti.";
             return;
@@ -321,6 +370,7 @@
         modaleAperta = true;
     }
 
+    /// <summary>Copia l'indirizzo scelto nel dialogo e azzera la ricerca.</summary>
     private void ApriModifica(Indirizzo indirizzo)
     {
         erroreModale = null;
@@ -347,6 +397,7 @@
         modaleAperta = true;
     }
 
+    /// <summary>Aggiunge o rimuove un giorno dalla selezione del dialogo.</summary>
     private void ToggleGiorno(string giorno, bool selezionato)
     {
         if (selezionato && !modale.Giorni.Contains(giorno))
@@ -415,6 +466,7 @@
         }
     }
 
+    /// <summary>Recupera i dettagli Google del suggerimento scelto e compila i campi.</summary>
     private async Task SelezionaSuggerimentoAsync(SuggerimentoLuogo suggerimento)
     {
         try
@@ -444,6 +496,7 @@
         }
     }
 
+    /// <summary>Azzera lo stato di errore per tentare di nuovo il caricamento della mappa.</summary>
     private void RiprovaMappaAsync()
     {
         mappaSelettoreFallita = false;
@@ -470,6 +523,7 @@
         return Task.CompletedTask;
     }
 
+    /// <summary>Copia nel form i campi restituiti da Google Maps.</summary>
     private void ApplicaRisultato(PlaceResult risultato)
     {
         modale.LuogoTrovato = risultato.FormattedAddress ?? string.Empty;
@@ -495,6 +549,7 @@
         return (virgola > 0 ? indirizzo[..virgola] : indirizzo).Trim();
     }
 
+    /// <summary>Chiude il dialogo, annulla le ricerche in corso e libera la mappa.</summary>
     private async Task ChiudiModaleAsync()
     {
         modaleAperta = false;
@@ -511,8 +566,10 @@
         }
     }
 
+    /// <summary>Rilascia il riferimento .NET usato da JavaScript.</summary>
     public void Dispose() => riferimentoJs?.Dispose();
 
+    /// <summary>Valida i campi e crea o aggiorna l'indirizzo nel database.</summary>
     private async Task SalvaAsync()
     {
         if (string.IsNullOrWhiteSpace(modale.NomeStudio))
@@ -567,6 +624,7 @@
         }
     }
 
+    /// <summary>Conta le prenotazioni collegate e prepara il testo di conferma.</summary>
     private async Task ChiediEliminazioneAsync(long id)
     {
         idDaEliminare = id;
@@ -577,6 +635,7 @@
         confermaAperta = true;
     }
 
+    /// <summary>Elimina l'indirizzo confermato e ricarica la tabella.</summary>
     private async Task EliminaConfermataAsync()
     {
         try
@@ -591,37 +650,81 @@
         }
     }
 
+    /// <summary>Campi del dialogo di creazione o modifica di uno studio.</summary>
     private sealed class IndirizzoModale
     {
+        // Null per un nuovo indirizzo, valorizzato in modifica.
         public long? Id { get; set; }
+
+        // Falso per uno studio disabilitato.
         public bool Attivo { get; set; } = true;
+
+        // Testo digitato nella ricerca Google.
         public string Luogo { get; set; } = string.Empty;
+
+        // Indirizzo completo confermato da Google o dalla mappa.
         public string LuogoTrovato { get; set; } = string.Empty;
+
+        // Via.
         public string Via { get; set; } = string.Empty;
+
+        // Numero civico.
         public string NumeroCivico { get; set; } = string.Empty;
+
+        // Città.
         public string Citta { get; set; } = string.Empty;
+
+        // Provincia.
         public string Provincia { get; set; } = string.Empty;
+
+        // Nome con cui lo studio appare sul sito.
         public string NomeStudio { get; set; } = string.Empty;
+
+        // Latitudine, necessaria per la mappa.
         public double? Latitudine { get; set; }
+
+        // Longitudine, necessaria per la mappa.
         public double? Longitudine { get; set; }
+
+        // Giorni di ricevimento assegnati allo studio.
         public List<string> Giorni { get; set; } = new();
     }
 
+    /// <summary>Suggerimento restituito da Google Places.</summary>
     public sealed class SuggerimentoLuogo
     {
+        // Identificativo Google usato per chiedere i dettagli.
         public string PlaceId { get; set; } = string.Empty;
+
+        // Riga principale mostrata nel suggerimento.
         public string PrimaryText { get; set; } = string.Empty;
+
+        // Riga secondaria (città, provincia).
         public string SecondaryText { get; set; } = string.Empty;
     }
 
+    /// <summary>Dettagli di un luogo Google, con i campi già separati.</summary>
     public sealed class PlaceResult
     {
+        // Indirizzo completo formattato.
         public string? FormattedAddress { get; set; }
+
+        // Via, se Google la espone separatamente.
         public string? Via { get; set; }
+
+        // Numero civico.
         public string? NumeroCivico { get; set; }
+
+        // Città.
         public string? Citta { get; set; }
+
+        // Provincia.
         public string? Provincia { get; set; }
+
+        // Latitudine.
         public double? Lat { get; set; }
+
+        // Longitudine.
         public double? Lng { get; set; }
     }
 }

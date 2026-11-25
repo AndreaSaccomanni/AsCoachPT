@@ -175,53 +175,104 @@
 </MudContainer>
 
 @code {
+    // Riga della tabella: numero progressivo e utente associato.
     private record Riga(int Posizione, Utente Utente);
 
+    // Utenti letti dal database.
     private List<Utente> utenti = new();
+
+    // Righe già numerate mostrate nella tabella.
     private List<Riga> Righe = new();
+
+    // Dati temporanei del dialogo "Modifica utente".
     private UtenteModifica modifica = new();
+
+    // Dati temporanei del dialogo "Aggiungi utente".
     private NuovoUtente nuovo = new();
+
+    // Vero finché la lista non ha finito di caricare.
     private bool loading = true;
+
+    // Vero durante un salvataggio (modifica o nuovo utente).
     private bool salvando;
+
+    // Controlla la visibilità del dialogo di modifica.
     private bool modaleModificaAperta;
+
+    // Controlla la visibilità del dialogo di creazione.
     private bool modaleNuovoAperta;
+
+    // Controlla la visibilità del dialogo di conferma eliminazione.
     private bool confermaAperta;
+
+    // Errore condiviso dai dialoghi di modifica e creazione.
     private string? erroreModale;
+
+    // Id dell'utente da eliminare.
     private long idDaEliminare;
+
+    // Vero se l'utente corrente è amministratore.
     private bool isAdmin;
+
+    // Controlla la visibilità del dialogo di reimpostazione password.
     private bool reimpostaAperta;
+
+    // Vero mentre il link di reimpostazione viene inviato.
     private bool invioLink;
+
+    // Utente a cui reimpostare la password.
     private Utente? utenteReimposta;
+
+    // Link monouso generato, null finché non viene richiesto.
     private string? linkReimpostazione;
+
+    // Esito dell'invio email: null se non ancora tentato.
     private bool? emailInviata;
+
+    // Errore mostrato nel dialogo di reimpostazione.
     private string? erroreReimpostazione;
 
+    // Dimensioni del dialogo di modifica e creazione.
     private readonly DialogOptions opzioniDialog = new()
     {
         FullWidth = true,
         MaxWidth = MaxWidth.Large
     };
 
+    // Dimensioni del dialogo di reimpostazione password.
     private readonly DialogOptions opzioniDialogReimposta = new()
     {
         FullWidth = true,
         MaxWidth = MaxWidth.Medium
     };
 
+    /// <summary>Legge il ruolo dell'utente e carica la lista.</summary>
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthState.GetAuthenticationStateAsync();
-        isAdmin = state.User.IsInRole(nameof(UserRole.ADMIN));
-        await CaricaAsync();
-        loading = false;
+        try
+        {
+            var state = await AuthState.GetAuthenticationStateAsync();
+            isAdmin = state.User.IsInRole(nameof(UserRole.ADMIN));
+            await CaricaAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 
+    /// <summary>Ricarica utenti e righe numerate della tabella.</summary>
     private async Task CaricaAsync()
     {
         utenti = await UtentiSvc.ElencaAsync();
-        Righe = utenti.Select((u, i) => new Riga(i + 1, u)).ToList();
+        Righe = utenti.Select((utente, indice) => new Riga(indice + 1, utente)).ToList();
     }
 
+    /// <summary>Copia i dati dell'utente scelto nel form di modifica.</summary>
     private void ApriModifica(Utente utente)
     {
         erroreModale = null;
@@ -238,6 +289,7 @@
         modaleModificaAperta = true;
     }
 
+    /// <summary>Azzera il form e apre il dialogo di creazione.</summary>
     private void ApriNuovo()
     {
         erroreModale = null;
@@ -245,6 +297,7 @@
         modaleNuovoAperta = true;
     }
 
+    /// <summary>Salva le modifiche anagrafiche e ricarica la lista.</summary>
     private async Task SalvaModificaAsync()
     {
         salvando = true;
@@ -275,6 +328,7 @@
         }
     }
 
+    /// <summary>Registra un nuovo utente con il ruolo scelto e ricarica la lista.</summary>
     private async Task SalvaNuovoAsync()
     {
         salvando = true;
@@ -310,6 +364,7 @@
     private bool PuoReimpostare(Utente utente) =>
         isAdmin || (utente.Ruolo ?? UserRole.USER) == UserRole.USER;
 
+    /// <summary>Prepara il dialogo di reimpostazione per l'utente scelto.</summary>
     private void ApriReimposta(Utente utente)
     {
         utenteReimposta = utente;
@@ -320,6 +375,7 @@
         reimpostaAperta = true;
     }
 
+    /// <summary>Genera il link monouso e prova a inviarlo via email.</summary>
     private async Task InviaLinkAsync()
     {
         if (utenteReimposta is null || invioLink)
@@ -357,6 +413,7 @@
         }
     }
 
+    /// <summary>Copia il link di reimpostazione negli appunti.</summary>
     private async Task CopiaLinkAsync()
     {
         if (string.IsNullOrWhiteSpace(linkReimpostazione))
@@ -377,6 +434,7 @@
         }
     }
 
+    /// <summary>Chiude il dialogo e azzera link ed esiti precedenti.</summary>
     private void ChiudiReimposta()
     {
         reimpostaAperta = false;
@@ -387,12 +445,14 @@
         invioLink = false;
     }
 
+    /// <summary>Memorizza l'utente e apre il dialogo di conferma eliminazione.</summary>
     private void ChiediEliminazione(long id)
     {
         idDaEliminare = id;
         confermaAperta = true;
     }
 
+    /// <summary>Elimina l'utente confermato e ricarica la lista.</summary>
     private async Task EliminaConfermataAsync()
     {
         try
@@ -407,25 +467,53 @@
         }
     }
 
+    /// <summary>Campi modificabili di un utente esistente.</summary>
     private sealed class UtenteModifica
     {
+        // Identificativo dell'utente da aggiornare.
         public long Id { get; set; }
+
+        // Nome.
         public string Nome { get; set; } = string.Empty;
+
+        // Cognome.
         public string Cognome { get; set; } = string.Empty;
+
+        // Email usata anche come username di accesso.
         public string Email { get; set; } = string.Empty;
+
+        // Telefono.
         public string Telefono { get; set; } = string.Empty;
+
+        // Data di nascita, opzionale.
         public DateTime? DataDiNascita { get; set; }
+
+        // Ruolo scelto, serializzato come nome dell'enum.
         public string Ruolo { get; set; } = nameof(UserRole.USER);
     }
 
+    /// <summary>Campi necessari per creare un utente.</summary>
     private sealed class NuovoUtente
     {
+        // Nome.
         public string Nome { get; set; } = string.Empty;
+
+        // Cognome.
         public string Cognome { get; set; } = string.Empty;
+
+        // Email usata anche come username di accesso.
         public string Email { get; set; } = string.Empty;
+
+        // Telefono obbligatorio per la registrazione.
         public string Telefono { get; set; } = string.Empty;
+
+        // Data di nascita, opzionale.
         public DateTime? DataDiNascita { get; set; }
+
+        // Password scelta dallo staff.
         public string Password { get; set; } = string.Empty;
+
+        // Ruolo assegnato al nuovo utente.
         public string Ruolo { get; set; } = nameof(UserRole.USER);
     }
 }

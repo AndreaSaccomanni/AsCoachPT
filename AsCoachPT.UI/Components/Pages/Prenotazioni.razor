@@ -33,7 +33,7 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
-    else if (prenotazioni.Count == 0)
+    else if (Righe.Count == 0)
     {
         <MudAlert Severity="Severity.Warning">Nessuna prenotazione attiva.</MudAlert>
     }
@@ -82,7 +82,7 @@
         </TitleContent>
         <DialogContent>
             <div class="dialog-form">
-            @if (giorniRicevimento.Count > 0 && giorniRicevimento.Count < GiorniSettimana.Length)
+            @if (giorniRicevimento.Count > 0 && giorniRicevimento.Count < GiorniStudio.Settimana.Length)
             {
                 <MudAlert Severity="Severity.Info" Class="mb-4">
                     Sono selezionabili solo i giorni di ricevimento: <strong>@string.Join(", ", nomiGiorniStudio)</strong>.
@@ -143,43 +143,83 @@
 </MudContainer>
 
 @code {
+    // Riga della tabella: numero progressivo e prenotazione associata.
     private record Riga(int Posizione, Prenotazione Prenotazione);
 
-    private List<Prenotazione> prenotazioni = new();
+    // Righe già numerate mostrate nella tabella.
     private List<Riga> Righe = new();
+
+    // Notifiche non lette per lo staff; resta vuoto per gli utenti normali.
     private List<NotificaPrenotazione> notifiche = new();
+
+    // Servizi disponibili nel dialogo, caricati alla prima apertura.
     private List<Servizio> servizi = new();
+
+    // Tutti gli studi, filtrati per giorno dentro il dialogo.
     private List<Indirizzo> indirizzi = new();
+
+    // Studi aperti nella data scelta nel dialogo.
     private List<Indirizzo> indirizziModifica = new();
 
-    private static readonly string[] GiorniSettimana = GiorniStudio.Settimana;
+    // Nomi italiani dei giorni di ricevimento, per il messaggio del dialogo.
     private readonly List<string> nomiGiorniStudio = new();
+
+    // Giorni in cui almeno uno studio riceve.
     private HashSet<DayOfWeek> giorniRicevimento = new();
+
+    // Prima data selezionabile nel calendario.
     private readonly DateTime dataMinima = DateTime.Today;
 
+    // Vero finché la tabella non ha finito di caricare.
     private bool loading = true;
+
+    // Vero se l'utente è admin o personal trainer.
     private bool isStaff;
+
+    // Vero durante il salvataggio della modifica.
     private bool salvando;
+
+    // Controlla la visibilità del dialogo di modifica.
     private bool modaleAperta;
+
+    // Controlla la visibilità del dialogo di conferma eliminazione.
     private bool confermaAperta;
+
+    // Errore mostrato dentro il dialogo di modifica.
     private string? erroreModifica;
+
+    // Id della prenotazione da eliminare.
     private long idDaEliminare;
+
+    // Id della prenotazione in modifica.
     private long idInModifica;
+
+    // Nuova data scelta nel dialogo.
     private DateTime? dataModifica;
+
+    // Nuova ora scelta nel dialogo.
     private TimeSpan? oraModifica;
+
+    // Servizio scelto nel dialogo.
     private long servizioModifica;
+
+    // Studio scelto nel dialogo.
     private long indirizzoModifica;
+
+    // Note modificate nel dialogo.
     private string? noteModifica;
 
+    // Id dell'utente autenticato, usato per filtrare le prenotazioni.
+    private long actorId;
+
+    // Dimensioni e larghezza comuni dei dialoghi.
     private readonly DialogOptions opzioniDialog = new()
     {
         FullWidth = true,
         MaxWidth = MaxWidth.Large
     };
 
-    [SupplyParameterFromQuery(Name = "created")]
-    public int? Created { get; set; }
-
+    /// <summary>Legge ruolo e utente, poi carica la tabella delle prenotazioni.</summary>
     protected override async Task OnInitializedAsync()
     {
         try
@@ -189,14 +229,7 @@
             isStaff = actor.IsStaff;
             actorId = actor.Id;
 
-            servizi = await ServiziSvc.ElencaAsync();
-            indirizzi = await IndirizziSvc.ElencaAsync();
             await CaricaAsync();
-
-            if (Created == 1)
-            {
-                Snackbar.Add("Prenotazione confermata ✅", Severity.Success);
-            }
         }
         catch (Exception ex)
         {
@@ -208,17 +241,21 @@
         }
     }
 
+    /// <summary>Ricarica prenotazioni future e notifiche secondo il ruolo.</summary>
     private async Task CaricaAsync()
     {
-        prenotazioni = isStaff
+        var prenotazioni = isStaff
             ? await PrenotazioniSvc.ElencaFutureAsync()
             : await PrenotazioniSvc.ElencaFuturePerUtenteAsync(actorId);
+
         notifiche = isStaff
             ? await PrenotazioniSvc.ElencaNotificheAsync()
             : new();
-        Righe = prenotazioni.Select((p, i) => new Riga(i + 1, p)).ToList();
+
+        Righe = prenotazioni.Select((prenotazione, indice) => new Riga(indice + 1, prenotazione)).ToList();
     }
 
+    /// <summary>Segna come lette tutte le notifiche dello staff e svuota il riquadro.</summary>
     private async Task SegnaNotificheLetteAsync()
     {
         await PrenotazioniSvc.SegnaNotificheLetteAsync();
@@ -226,14 +263,13 @@
         Snackbar.Add("Notifiche segnate come lette", Severity.Success);
     }
 
-    private long actorId;
-
     /// <summary>
-    /// Apre il dialogo di modifica rileggendo gli studi, così i giorni di
-    /// ricevimento sono sempre allineati alle ultime impostazioni.
+    /// Apre il dialogo di modifica rileggendo servizi e studi, così i giorni
+    /// di ricevimento sono sempre allineati alle ultime impostazioni.
     /// </summary>
     private async Task ApriModifica(Prenotazione prenotazione)
     {
+        servizi = await ServiziSvc.ElencaAsync();
         indirizzi = await IndirizziSvc.ElencaAsync();
         giorniRicevimento = GiorniStudio.DaStudi(indirizzi);
         nomiGiorniStudio.Clear();
@@ -293,9 +329,14 @@
     /// <summary>Classe usata dal calendario per evidenziare i giorni di ricevimento.</summary>
     private string ClasseGiorno(DateTime data) => GiornoNonSelezionabile(data) ? string.Empty : "giorno-ricevimento";
 
+    /// <summary>Salva data, servizio, studio e note modificate, poi ricarica la tabella.</summary>
     private async Task SalvaModificaAsync()
     {
-        if (dataModifica is null || oraModifica is null) { erroreModifica = "Data e ora sono obbligatorie"; return; }
+        if (dataModifica is null || oraModifica is null)
+        {
+            erroreModifica = "Data e ora sono obbligatorie";
+            return;
+        }
 
         salvando = true;
         erroreModifica = null;
@@ -313,7 +354,6 @@
                 Note = noteModifica
             }, actor);
 
-            actorId = actor.Id;
             await CaricaAsync();
             modaleAperta = false;
             Snackbar.Add("Prenotazione aggiornata con successo", Severity.Success);
@@ -328,12 +368,14 @@
         }
     }
 
+    /// <summary>Memorizza la prenotazione e apre il dialogo di conferma.</summary>
     private void ChiediEliminazione(long id)
     {
         idDaEliminare = id;
         confermaAperta = true;
     }
 
+    /// <summary>Elimina la prenotazione confermata e ricarica la tabella.</summary>
     private async Task EliminaConfermataAsync()
     {
         try
@@ -342,7 +384,6 @@
             var actor = ClaimsPrincipalFactory.ToAppUser(state.User) ?? throw new InvalidOperationException("Utente non autenticato");
 
             await PrenotazioniSvc.EliminaAsync(idDaEliminare, actor);
-            actorId = actor.Id;
             await CaricaAsync();
             Snackbar.Add("Prenotazione eliminata con successo", Severity.Success);
         }

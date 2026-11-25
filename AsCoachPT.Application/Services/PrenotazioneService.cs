@@ -1,6 +1,5 @@
 ﻿using AsCoachPT.Application.Models;
 using AsCoachPT.Application.Repositories;
-using AsCoachPT.Application.Services;
 using AsCoachPT.Domain.Models;
 using Microsoft.Extensions.Logging;
 
@@ -30,10 +29,6 @@ public sealed class PrenotazioneService(
     public Task<List<Prenotazione>> ElencaFuturePerUtenteAsync(long utenteId, CancellationToken tokenAnnullamento = default) =>
         prenotazioni.ElencaFuturePerUtenteAsync(utenteId, tokenAnnullamento);
 
-    /// <summary>Restituisce le prenotazioni collegate a uno studio.</summary>
-    public Task<List<Prenotazione>> ElencaPerIndirizzoAsync(long indirizzoId, CancellationToken tokenAnnullamento = default) =>
-        prenotazioni.ElencaPerIndirizzoAsync(indirizzoId, tokenAnnullamento);
-
     /// <summary>Notifiche non lette per lo staff (modifiche e annullamenti fatti dagli utenti).</summary>
     public Task<List<NotificaPrenotazione>> ElencaNotificheAsync(CancellationToken tokenAnnullamento = default) =>
         prenotazioni.ElencaNotificheNonLetteAsync(tokenAnnullamento);
@@ -43,7 +38,7 @@ public sealed class PrenotazioneService(
         prenotazioni.SegnaNotificheLetteAsync(tokenAnnullamento);
 
     /// <summary>Recupera una prenotazione o segnala che non esiste.</summary>
-    public async Task<Prenotazione> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
+    private async Task<Prenotazione> TrovaPerIdAsync(long id, CancellationToken tokenAnnullamento = default) =>
         await prenotazioni.TrovaPerIdAsync(id, tokenAnnullamento)
         ?? throw new InvalidOperationException("Prenotazione non trovata ️ ️");
 
@@ -78,41 +73,8 @@ public sealed class PrenotazioneService(
         }
 
         dataOra = DateTime.SpecifyKind(dataOra, DateTimeKind.Unspecified);
-        var durata = servizio.Durata;
-        var finePrenotazione = dataOra.AddMinutes(durata);
-        var oraInizio = TimeOnly.FromDateTime(dataOra);
-
-        if (dataOra < DateTime.Now)
-        {
-            throw new InvalidOperationException(" Non è possibile prenotare un appuntamento per una data passata ");
-        }
-
-        if (dataOra.DayOfWeek == DayOfWeek.Sunday)
-        {
-            throw new InvalidOperationException(" Non si possono prenotare appuntamenti la domenica ");
-        }
-
         VerificaGiornoDiRicevimento(indirizzo, dataOra);
-
-        if (dataOra.DayOfWeek == DayOfWeek.Saturday && TimeOnly.FromDateTime(finePrenotazione) > ChiusuraSabato)
-        {
-            throw new InvalidOperationException("Il sabato gli appuntamenti devono concludersi entro le 13:00 ");
-        }
-
-        if (oraInizio < Apertura)
-        {
-            throw new InvalidOperationException(" Non è possibile prenotare appuntamenti prima delle 9:00");
-        }
-
-        if (TimeOnly.FromDateTime(finePrenotazione) > Chiusura)
-        {
-            throw new InvalidOperationException("Gli appuntamenti devono concludersi entro le 20:30 ");
-        }
-
-        if (await IsSovrapposizioneAsync(dataOra, finePrenotazione, null, tokenAnnullamento))
-        {
-            throw new InvalidOperationException("Impossibile creare una prenotazione per l'ora e la data selezionata, c'è gia un altro appuntamento prenotato");
-        }
+        await ValidaSlotAsync(servizio, dataOra, null, tokenAnnullamento);
 
         var prenotazione = new Prenotazione
         {
@@ -131,7 +93,7 @@ public sealed class PrenotazioneService(
             + "Dettagli:\n\n"
             + "📅 Data: " + dataOra.ToString("dd/MM/yyyy") + "\n"
             + "🕒 Orario: " + dataOra.ToString("HH:mm") + "\n"
-            + "⌛ Durata: " + durata + " minuti\n"
+            + "⌛ Durata: " + servizio.Durata + " minuti\n"
             + "📍 Indirizzo: " + indirizzo.Citta + ",  " + indirizzo.Via + " " + indirizzo.NumeroCivico + " - " + indirizzo.NomeStudio + "\n"
             + (!string.IsNullOrWhiteSpace(note) ? "📝 Note: " + note + "\n\n" : "\n\n")
             + "Grazie!\n"
@@ -218,40 +180,11 @@ public sealed class PrenotazioneService(
             var servizio = await servizi.TrovaPerIdAsync(servizioId, tokenAnnullamento)
                 ?? throw new InvalidOperationException("Servizio non trovato!");
 
-            var dataOra = DateTime.SpecifyKind(richiesta.DataOraPrenotazione.Value, DateTimeKind.Unspecified);
-            var durata = servizio.Durata;
-            var finePrenotazione = dataOra.AddMinutes(durata);
-            var oraInizio = TimeOnly.FromDateTime(dataOra);
-
-            if (dataOra < DateTime.Now)
-            {
-                throw new InvalidOperationException("Non è possibile prenotare un appuntamento per una data passata ");
-            }
-
-            if (dataOra.DayOfWeek == DayOfWeek.Sunday)
-            {
-                throw new InvalidOperationException("Non si possono prenotare appuntamenti la domenica ");
-            }
-
-            if (dataOra.DayOfWeek == DayOfWeek.Saturday && TimeOnly.FromDateTime(finePrenotazione) > ChiusuraSabato)
-            {
-                throw new InvalidOperationException("Il sabato gli appuntamenti devono concludersi entro le 13:00 ");
-            }
-
-            if (oraInizio < Apertura)
-            {
-                throw new InvalidOperationException(" Non è possibile prenotare appuntamenti prima delle 9:00");
-            }
-
-            if (TimeOnly.FromDateTime(finePrenotazione) > Chiusura)
-            {
-                throw new InvalidOperationException("Gli appuntamenti devono concludersi entro le 20:30 ");
-            }
-
-            if (await IsSovrapposizioneAsync(dataOra, finePrenotazione, prenotazione.Id, tokenAnnullamento))
-            {
-                throw new InvalidOperationException("Impossibile creare una prenotazione per l'ora e la data selezionata, c'è gia un altro appuntamento prenotato ");
-            }
+            var dataOra = await ValidaSlotAsync(
+                servizio,
+                richiesta.DataOraPrenotazione.Value,
+                prenotazione.Id,
+                tokenAnnullamento);
 
             prenotazione.Servizio = servizio;
             prenotazione.DataOra = dataOra;
@@ -260,12 +193,6 @@ public sealed class PrenotazioneService(
         {
             prenotazione.Servizio = await servizi.TrovaPerIdAsync(richiesta.ServizioId.Value, tokenAnnullamento)
                 ?? throw new InvalidOperationException(" ️Servizio non trovato! ");
-        }
-
-        if (richiesta.UtenteId is not null)
-        {
-            prenotazione.Utente = await utenti.TrovaPerIdAsync(richiesta.UtenteId.Value, tokenAnnullamento)
-                ?? throw new InvalidOperationException("Utente non trovato! ");
         }
 
         if (richiesta.Note is not null)
@@ -438,9 +365,65 @@ public sealed class PrenotazioneService(
         }
     }
 
+    /// <summary>
+    /// Valida lo slot richiesto: data futura, non domenicale, dentro gli orari
+    /// di apertura e senza sovrapposizioni. Restituisce la data normalizzata
+    /// come ora locale senza fuso, coerente con la colonna del database.
+    /// </summary>
+    /// <param name="servizio">Servizio prenotato, usato per calcolare la durata.</param>
+    /// <param name="dataOra">Inizio richiesto della prenotazione.</param>
+    /// <param name="prenotazioneDaEscludere">Prenotazione in modifica, da non contare come occupata.</param>
+    /// <param name="tokenAnnullamento">Token per annullare le query.</param>
+    private async Task<DateTime> ValidaSlotAsync(
+        Servizio servizio,
+        DateTime dataOra,
+        long? prenotazioneDaEscludere,
+        CancellationToken tokenAnnullamento)
+    {
+        dataOra = DateTime.SpecifyKind(dataOra, DateTimeKind.Unspecified);
+        var finePrenotazione = dataOra.AddMinutes(servizio.Durata);
+        var oraInizio = TimeOnly.FromDateTime(dataOra);
+
+        if (dataOra < DateTime.Now)
+        {
+            throw new InvalidOperationException("Non è possibile prenotare un appuntamento per una data passata.");
+        }
+
+        if (dataOra.DayOfWeek == DayOfWeek.Sunday)
+        {
+            throw new InvalidOperationException("Non si possono prenotare appuntamenti la domenica.");
+        }
+
+        if (dataOra.DayOfWeek == DayOfWeek.Saturday && TimeOnly.FromDateTime(finePrenotazione) > ChiusuraSabato)
+        {
+            throw new InvalidOperationException("Il sabato gli appuntamenti devono concludersi entro le 13:00.");
+        }
+
+        if (oraInizio < Apertura)
+        {
+            throw new InvalidOperationException("Non è possibile prenotare appuntamenti prima delle 9:00.");
+        }
+
+        if (TimeOnly.FromDateTime(finePrenotazione) > Chiusura)
+        {
+            throw new InvalidOperationException("Gli appuntamenti devono concludersi entro le 20:30.");
+        }
+
+        if (await IsSovrapposizioneAsync(dataOra, finePrenotazione, prenotazioneDaEscludere, tokenAnnullamento))
+        {
+            throw new InvalidOperationException("Impossibile creare una prenotazione per l'ora e la data selezionata, c'è già un altro appuntamento prenotato.");
+        }
+
+        return dataOra;
+    }
+
+    /// <summary>
+    /// Cerca una prenotazione che si sovrappone allo slot. Carica solo i
+    /// appuntamenti del giorno richiesto: le fasce orarie non superano la mezzanotte.
+    /// </summary>
     private async Task<bool> IsSovrapposizioneAsync(DateTime inizio, DateTime fine, long? prenotazioneId, CancellationToken tokenAnnullamento)
     {
-        var esistenti = await prenotazioni.ElencaConServizioAsync(tokenAnnullamento);
+        var esistenti = await prenotazioni.ElencaDelGiornoAsync(DateOnly.FromDateTime(inizio), tokenAnnullamento);
 
         foreach (var prenotazione in esistenti)
         {

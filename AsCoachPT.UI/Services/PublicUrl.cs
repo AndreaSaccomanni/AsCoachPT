@@ -9,6 +9,12 @@ namespace AsCoachPT.UI.Services;
 /// </summary>
 public static class PublicUrl
 {
+    /// <summary>
+    /// Restituisce la base pubblica configurata, senza barra finale; se non è
+    /// configurata usa l'host da cui è stata aperta la pagina.
+    /// </summary>
+    /// <param name="configurazione">Configurazione dell'applicazione.</param>
+    /// <param name="navigazione">Navigazione corrente, usata come fallback.</param>
     public static string Resolve(IConfiguration configurazione, NavigationManager navigazione)
     {
         var configurato = configurazione["App:PublicBaseUrl"];

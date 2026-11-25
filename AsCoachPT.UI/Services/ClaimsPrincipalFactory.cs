@@ -48,7 +48,6 @@ public static class ClaimsPrincipalFactory
             id,
             principal.FindFirstValue(NomeClaim) ?? principal.Identity?.Name ?? string.Empty,
             principal.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
-            principal.Identity?.Name ?? string.Empty,
             ruolo);
     }
 }
